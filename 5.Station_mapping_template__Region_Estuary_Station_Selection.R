@@ -146,7 +146,7 @@ if(Map_output == "Site") {
     leaflet_map <- tm_shape(name = "Microgrid cells", All_data %>% filter(Section == i)) + 
       tm_borders(col = "gray") + #Cell borders
       #Add oyster layer if used for selection
-      {if(Oyster_Layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y" & Section == i) %>% 
+      {if(Oyster_layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y" & Section == i) %>% 
                                           mutate(FL_Oysters = ifelse(FL_Oysters == "Y", "Oyster layer", FL_Oysters)))+  #Change text for legend
           tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)} +
       #Add stations
