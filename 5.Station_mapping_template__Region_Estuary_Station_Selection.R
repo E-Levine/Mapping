@@ -1,4 +1,4 @@
-####Template for Estuary MicroGrid Station Selection
+####Template for Estuary MicroGrid Station Mapping
 ####Update the Region, Estuary/Site Code, and StateGrids in lines 25-28 (lines 21-24 after removing template header). 
 ####Delete lines 1-3 when saving as new working file.
 #
@@ -23,21 +23,18 @@ pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
                install = TRUE) #Mapping and figures
 #
 #Assign Region, Estuary Code, and StateGrid(s). Only assign the Alternate state grid in line 24 if required.
-Region <- c("SouthEast")
-Site_Code <- c("SLE")
-State_Grid <- c("H4")
-#Alt_State_Grid <- c("H5") 
+Region <- c("SouthWest")
+Site_Code <- c("CR")
+State_Grid <- c("F5")
+#Alt_State_Grid <- c("G5") 
 #
 #Date of grid updates (output data date from file name)
-Date <- c("2023-07-20") #Format: YYY-MM-DD
+Date <- c("2023-08-09") #Format: YYY-MM-DD
 #
 ##WQ data range for HSM - start and end year for WQ data compilation (refer to file name for dates)
 Start_year <- c("2012")
 End_year <- c("2022")
 #
-#Year or timeperiod of survey to be completed
-Survey_year <- c("2023")
-Survey_timeperiod <- 05 #Change to Month of Survey (##) or Quarter (c("Spring/Summer/Fall/Winter")) of survey
 #
 #
 #
