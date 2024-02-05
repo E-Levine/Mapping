@@ -125,7 +125,7 @@ if(Map_output == "Site") {
     tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5) +
     #Add stations
     tm_shape(name = "Survey stations", All_data %>% subset(!is.na(Oysters)))+  
-    tm_symbols("Oysters", palette = c("viridis"), size = 0.5) + 
+    tm_symbols("Oysters", palette = c("viridis"), size = 0.02) + 
     #Add FL shoreline
     tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
     #Add cell Station numbers
