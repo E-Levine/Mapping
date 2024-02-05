@@ -134,7 +134,8 @@ if(Map_output == "Site") {
     #{if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
     #{if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
     tm_layout(main.title = paste0("Survey Station Observations: ", min(as.Date(Comp_Stations$Date, "%m/%d/%Y")), " - ", max(as.Date(Comp_Stations$Date, "%m/%d/%Y"))), 
-              main.title.position = "center")
+              main.title.position = "center")+
+    tm_view(symbol.size.fixed = FALSE)
   #
   (Site_map <- tmap_leaflet(leaflet_map))
   #
