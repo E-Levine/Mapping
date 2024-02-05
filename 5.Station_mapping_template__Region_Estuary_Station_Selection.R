@@ -2,7 +2,7 @@
 ####Update the Region, Estuary/Site Code, and StateGrids in lines 25-28 (lines 21-24 after removing template header). 
 ####Delete lines 1-3 when saving as new working file.
 #
-###Randomized Survey Station Selection
+###Randomized Survey Station Mapping
 #
 #
 #Use Alt+O to collapse all sections, Alt+Shift+O to expand all sections
@@ -75,7 +75,7 @@ head(Monitoring)
 Monitor_spdf <- SpatialPointsDataFrame(Monitoring[,3:4], Monitoring)
 crs(Monitor_spdf) <- "+proj=longlat +datum=WGS84 +no_defs +type=crs"
 #
-Monitoring <- "NA" #Run in not including Monitoring stations
+Monitoring <- "NA" #Run if not including Monitoring stations
 #
 #Completed survey stations 
 Comp_Stations <- read.csv(paste0("Output_Data/", Site_Code, "_Station_MGIDs.csv"), na.string = c("Z", "", "NA")) %>%
