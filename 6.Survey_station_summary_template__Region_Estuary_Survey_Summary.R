@@ -245,8 +245,8 @@ if(Map_area == "Site"){
     All_data %>% subset(FL_Oysters == "Y" & Oysters == "No") %>% as.data.frame() %>% summarise(No = n()), #No/Total in shapefile layer
     All_data %>% subset(FL_Oysters == "Y") %>% as.data.frame() %>% summarise(Total = n())) %>%
     mutate(Remains = Total - Yes - No,
-           Pct_Yes = round(Yes/Total*100, 2),
-           Pct_No = round(No/Total*100, 2)),
+           Pct_Yes = Yes/(Yes+No)*100,
+           Pct_No = No/(Yes+No)*100),
   All_data %>% subset(FL_Oysters != "Y" & Oysters == "Yes") %>% as.data.frame() %>% summarise(Extra_Yes = n()), #All possible "Yes"
   All_data %>% subset(FL_Oysters != "Y" & Oysters == "No") %>% as.data.frame() %>% summarise(Extra_No = n()))) #All possible "No"
 #
@@ -301,12 +301,14 @@ tmap_save(Polygon_checks, file = paste0("Maps/Survey/", Site_Code, "/Completed/"
     t3@data %>% subset(Type == "Absent/In") %>% summarise(Abs_In = n()), #No/Total in shapefile layer
     t@data %>% summarise(Total = n())) %>%  #Total number of polygons) %>%
     mutate(Remains = Total - Pres_In - Abs_In,
-           Pct_Pres_In = round(Pres_In/Total*100, 2),
-           Pct_Abs_In = round(Abs_In/Total*100, 2)),
+           Pct_Pres_In = Pres_In/(Pres_In + Abs_In)*100,
+           Pct_Abs_In = Abs_In/(Pres_In + Abs_In)*100),
   t3@data %>% subset(Type == "Present/Out") %>% summarise(Pres_Out = n()), #All possible "Yes"
   t3@data %>% subset(Type == "Absent/Out") %>% summarise(Abs_Out = n())) %>% #All possible "No"
-   mutate(Pct_Pres_Out = round(Pres_Out/Total*100, 2),
-          Pct_Abs_Out = round(Abs_Out/Total*100, 2)))
+   mutate(Pct_Pres_Out = round(Pres_Out/(Pres_Out + Abs_Out)*100, 2),
+          Pct_Abs_Out = round(Abs_Out/(Pres_Out + Abs_Out)*100, 2),
+          Pct_Oy_Pres = round(((Pres_In + Pres_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100,2),
+          Pct_Oy_Abs= round(((Abs_In + Abs_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100, 2)))
 #
 #
 #
