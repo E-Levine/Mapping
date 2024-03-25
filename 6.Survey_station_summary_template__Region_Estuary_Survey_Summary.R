@@ -98,5 +98,141 @@ st_crs(FL_Oysters)
 #
 #
 #
-####Oyster presence by grid cell####
+####Mapping options####
+#
+#Show oyster layer presence? Y/N
+Oyster_layer <- c("Y")
+#Show depth? Y/N
+Depth_layer <- c("N")
+#Interactive or static map. Static map does not include station IDs, interactive map does. Inter/Static
+Map_type <- c("Inter")
+#Map at the Site/Estuary or Section level? Site/Section
+Map_area <- c("Site")
+#Include text for station ID on Section-level static maps? Can make the map busy/cluttered looking. Y/N
+Section_Static_IDs <- c("N")
+#
+#
+####Oyster presence by grid cell - mapping####
+#
+#Final combined data frame
+All_data <- left_join((Site_Grid %>% dplyr::select(-Site, -Section, -SHA_Name, -SHA_Class, -Subsection, -Bathy_m)),
+                      Site_data %>% dplyr::select(MGID, Site:HSM_Score)) %>%
+  mutate(Seagrass = ifelse(is.na(Seagrass), "Unk", Seagrass)) %>%
+  left_join(Comp_Stations %>% dplyr::select(Site, Section, Date, MGID:Longitude, FixedLocationID:Dead_Count) %>% mutate(Oysters = as.factor(Oysters)))
+#
+head(All_data)
+#
+##Map of either Site or Sections, either static or interactive - based on selections in "Mapping Options" (starting line 97)
+if(Map_area == "Site"){
+  if(Map_type == "Static") {
+    leaflet_map <- tm_shape(name = "Microgrid cells", All_data) + 
+      tm_borders(col = "gray") + #Cell borders
+      #Add oyster layer 
+      {if(Oyster_layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y") %>% 
+                                          mutate(FL_Oysters = ifelse(FL_Oysters == "Y", "Oyster layer", FL_Oysters)))+  #Change text for legend
+          tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)}+  #Change text for legend
+      #Add depth
+      {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add stations surveyed
+      tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters)))+  
+      tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8)+
+      #Add FL shoreline
+      tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+      #Add monitoring stations
+      {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+      {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+      tm_layout(main.title = paste0(Site_Code, " Survey"), main.title.position = "center")+
+      tm_view(symbol.size.fixed = FALSE)
+    #
+    (Site_map <- leaflet_map)
+    #
+    tmap_save(Site_map, file = paste0("Maps/Survey/", Site_Code, "/Completed/", Site_Code, "_survey_summary.jpg"), dpi = 1000)
+    #
+  } else if(Map_type == "Inter"){
+    leaflet_map <- tm_shape(name = "Microgrid cells", All_data) + 
+      tm_borders(col = "gray") + #Cell borders
+      #Add oyster layer 
+      {if(Oyster_layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y") %>% 
+                                          mutate(FL_Oysters = ifelse(FL_Oysters == "Y", "Oyster layer", FL_Oysters)))+  #Change text for legend
+          tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)}+  #Change text for legend
+      #Add depth
+      {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add stations surveyed
+      tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters)))+  
+      tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8)+
+      #Add FL shoreline
+      tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+      #Add cell Station numbers
+      tm_shape(name = "Location ID", All_data) + tm_text("FixedLocationID", size = "AREA")+ 
+      #Add monitoring stations
+      {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+      {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+      tm_layout(main.title = paste0(Site_Code, " Survey"), main.title.position = "center")+
+      tm_view(symbol.size.fixed = FALSE)
+    #
+    (Site_map <- tmap_leaflet(leaflet_map))
+    #
+    saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/Completed/Interactive maps/", Site_Code,"_survey_summary_widget.html"))
+    #
+  }
+} else if(Map_area == "Section"){
+  if(Map_type == "Static") { 
+    for(i in unique(Comp_Stations$Section)){
+      leaflet_map <- tm_shape(name = "Microgrid cells", All_data %>% filter(Section == i)) + 
+        tm_borders(col = "gray") + #Cell borders
+        #Add oyster layer if used for selection
+        {if(Oyster_layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y" & Section == i) %>% 
+                                            mutate(FL_Oysters = ifelse(FL_Oysters == "Y", "Oyster layer", FL_Oysters)))+  #Change text for legend
+            tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)} +
+        #Add depth
+        {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add stations
+        tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters) & Section == i))+  
+        tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8) + 
+        #Add FL shoreline
+        tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+        #Add cell Station numbers
+        {if(Section_Static_IDs == "Y") tm_shape(name = "Location ID", All_data %>% subset(Section == i)) + tm_text("FixedLocationID", size = "AREA", auto.placement = TRUE)}+ 
+        #Add monitoring stations
+        {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.75, col = "black", border.col = "black", alpha = 0.4)}+
+        {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+        tm_layout(main.title = paste0(Site_Code, " ", i, " Survey"), main.title.position = "center")+
+        tm_view(symbol.size.fixed = FALSE)
+      #
+      tmap_save(leaflet_map, file = paste0("Maps/Survey/", Site_Code, "/Completed/", Site_Code, "_", i, "_survey_summary.jpg"),
+                dpi = 1000)
+      #
+    }
+  } else if(Map_type == "Inter"){
+    for(i in unique(Comp_Stations$Section)){
+      leaflet_map <- tm_shape(name = "Microgrid cells", All_data %>% filter(Section == i)) + 
+        tm_borders(col = "gray") + #Cell borders
+        #Add oyster layer 
+        {if(Oyster_layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y" & Section == i) %>% 
+                                            mutate(FL_Oysters = ifelse(FL_Oysters == "Y", "Oyster layer", FL_Oysters)))+  #Change text for legend
+            tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)}+  #Change text for legend
+        #Add depth
+        {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add stations surveyed
+        tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters) & Section == i))+  
+        tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8)+
+        #Add FL shoreline
+        tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+        #Add cell Station numbers
+        tm_shape(name = "Location ID", All_data %>% filter(Section == i)) + tm_text("FixedLocationID", size = "AREA")+ 
+        #Add monitoring stations
+        {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+        {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+        tm_layout(main.title = paste0(Site_Code, " Survey"), main.title.position = "center")+
+        tm_view(symbol.size.fixed = FALSE)
+      #
+      (Site_map <- tmap_leaflet(leaflet_map))
+      #
+      saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/Completed/Interactive maps/", Site_Code,"_", i,"_survey_summary_widget.html"))
+    }
+    #
+  }
+}
+#
+#
 #
