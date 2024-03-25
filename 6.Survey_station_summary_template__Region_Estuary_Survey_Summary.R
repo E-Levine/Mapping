@@ -236,3 +236,59 @@ if(Map_area == "Site"){
 #
 #
 #
+####Oyster presence by grid cell - summary####
+#
+#Summary of how many Yes or No oysters out of all oyster presence cells
+(Grid_summ <- cbind(
+  cbind(
+    All_data %>% subset(FL_Oysters == "Y" & Oysters == "Yes") %>% as.data.frame() %>% summarise(Yes = n()), #Yes/Total in shapefile layer
+    All_data %>% subset(FL_Oysters == "Y" & Oysters == "No") %>% as.data.frame() %>% summarise(No = n()), #No/Total in shapefile layer
+    All_data %>% subset(FL_Oysters == "Y") %>% as.data.frame() %>% summarise(Total = n())) %>%
+    mutate(Remains = Total - Yes - No,
+           Pct_Yes = round(Yes/Total*100, 2),
+           Pct_No = round(No/Total*100, 2)),
+  All_data %>% subset(FL_Oysters != "Y" & Oysters == "Yes") %>% as.data.frame() %>% summarise(Extra_Yes = n()), #All possible "Yes"
+  All_data %>% subset(FL_Oysters != "Y" & Oysters == "No") %>% as.data.frame() %>% summarise(Extra_No = n()))) #All possible "No"
+#
+#
+#
+#
+####Oyster presence by polygon - mapping####
+#
+#Convert Comp_Stations to spdf
+Comp_Stations_sf <- SpatialPointsDataFrame(Comp_Stations[,c(7, 6)], Comp_Stations %>% rename(Oyster_S = Oysters))
+crs(Comp_Stations_sf) <- "+proj=longlat +datum=WGS84 +no_defs +type=crs"
+plot(Comp_Stations_sf)
+#
+#Determine number of polygons intersected by at least 1 point
+Checked_polys <- over(Comp_Stations_sf, FL_Oysters)
+#Identify which polygons are intersected 
+intersected <- unique(Checked_polys) %>% mutate(Checked = "Yes") %>% drop_na(OBJECTID)
+#Merge data and mark polygons not intersected as "No" for checked
+t <- merge(FL_Oysters, intersected) 
+t@data <- t@data %>% mutate(Checked = ifelse(is.na(Checked), "No", "Yes"))
+#
+#Assign polygon data to points for mapping coloration
+t2 <- st_intersection(st_as_sf(Comp_Stations_sf), st_as_sf(t)) 
+t3 <-  merge(Comp_Stations_sf, t2)  #Add polygon info to stations.
+t3@data <- t3@data %>% 
+  mutate(Type = ifelse(is.na(OBJECTID) & Oyster_S == "Yes", "Present/Out", 
+                       ifelse(!is.na(OBJECTID) & Oyster_S == "Yes", "Present/In", 
+                              ifelse(!is.na(OBJECTID) & Oyster_S == "No", "Absent/In", "Absent/Out")))) %>%
+  mutate(Type = factor(Type, levels = c("Present/In", "Present/Out", "Absent/In", "Absent/Out")))
+#
+# 
+#
+#Map of polygons checked and station locations
+(Polygon_checks <- tm_shape(t)+
+    tm_polygons(col = "Checked")+
+    tm_shape(t3)+
+    tm_symbols(shape = 16, size = 1, col = "Type", palette = c("RdYlGn"), border.col = "black")+
+    tm_shape(st_make_valid(FL_outline)) + tm_polygons() +  
+    tm_layout(main.title = paste0(Site_Code, " Survey v. Polygon Comparison"), main.title.position = "center")+
+    tm_view(symbol.size.fixed = FALSE))
+#
+tmap_save(Polygon_checks, file = paste0("Maps/Survey/", Site_Code, "/Completed/", Site_Code, "_polygon_summary.jpg"), dpi = 1000)
+#
+#
+#
