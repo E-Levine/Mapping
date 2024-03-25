@@ -292,3 +292,21 @@ tmap_save(Polygon_checks, file = paste0("Maps/Survey/", Site_Code, "/Completed/"
 #
 #
 #
+####Oyster presence by polygon - summary####
+#
+#Summary of how many Yes or No oysters out of all oyster presence cells
+(Poly_summ <- cbind(
+  cbind(
+    t3@data %>% subset(Type == "Present/In") %>% summarise(Pres_In = n()), #Yes/Total in shapefile layer
+    t3@data %>% subset(Type == "Absent/In") %>% summarise(Abs_In = n()), #No/Total in shapefile layer
+    t@data %>% summarise(Total = n())) %>%  #Total number of polygons) %>%
+    mutate(Remains = Total - Pres_In - Abs_In,
+           Pct_Pres_In = round(Pres_In/Total*100, 2),
+           Pct_Abs_In = round(Abs_In/Total*100, 2)),
+  t3@data %>% subset(Type == "Present/Out") %>% summarise(Pres_Out = n()), #All possible "Yes"
+  t3@data %>% subset(Type == "Absent/Out") %>% summarise(Abs_Out = n())) %>% #All possible "No"
+   mutate(Pct_Pres_Out = round(Pres_Out/Total*100, 2),
+          Pct_Abs_Out = round(Abs_Out/Total*100, 2)))
+#
+#
+#
