@@ -63,7 +63,7 @@ plot(FL_outline)
 #Transform CRS and data as spatial data
 WQ_sp <- spTransform(SpatialPointsDataFrame(coords = WQ[,c(9,8)], data = WQ,
                                             proj4string = CRS("+init=epsg:4269 +proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs +towgs84=0,0,0")),
-                     CRSobj = CRS("+init=epsg:4326 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0 "))
+                     CRSobj = CRS(SRS_string = "EPSG:4326"))
 #
 #Check CRS s
 crs(Estuary_area)
