@@ -331,8 +331,8 @@ if(Map_output == "Site") {
     #Add cell Station numbers
     tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = "AREA")+ 
     #Add monitoring stations
-    {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
-    {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+    {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+    {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
     tm_layout(main.title = paste0(if(is.numeric(Survey_timeperiod)) month.abb[Survey_timeperiod] else Survey_timeperiod, " ", Survey_year, 
                                   " Survey Station Selection"), main.title.position = "center")
   #
@@ -360,8 +360,8 @@ if(Map_output == "Site") {
       #Add cell Station numbers
       tm_shape(name = "Station numbers", Stations_selected %>% filter(Section == i)) + tm_text("Station", size = 0.45)+ 
       #Add monitoring stations
-      {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.75, col = "black", border.col = "black", alpha = 0.4)}+
-      {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+      {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.75, col = "black", border.col = "black", alpha = 0.4)}+
+      {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
       tm_layout(main.title = paste0(if(is.numeric(Survey_timeperiod)) month.abb[Survey_timeperiod] else Survey_timeperiod, " ", Survey_year, 
                                     " ", i, " Survey Station Selection"),
                 main.title.position = "center")
