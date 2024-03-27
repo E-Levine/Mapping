@@ -30,14 +30,11 @@ End_year <- c("2022")
 #
 ##MicroGrid 
 MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",State_Grid,"_clip.shp"))
-#Alt_MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",Alt_State_Grid,"_clip.shp"))
 #
 #Check data, view map
 plot(MicroGrid$geometry)
 head(MicroGrid)
 #
-#plot(Alt_MicroGrid$geometry) #Check alternate
-#head(Alt_MicroGrid)
 #
 #
 ##Estuary area and Sections 
@@ -71,7 +68,7 @@ crs(WQ_sp)
 #
 ##Crop to estuary area
 Estuary_data <- WQ_sp[as.vector(st_intersects(Estuary_area, st_as_sf(WQ_sp), sparse = FALSE)), ]
-#Only run 75-77 if issue with Loop in line 73
+#Only run 73-75 if issue with Loop in line 70
 #
 #sf_use_s2(FALSE)
 #Estuary_data <- WQ_sp[lengths(st_intersects(Estuary_area, st_as_sf(WQ_sp))>0,]
