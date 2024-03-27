@@ -143,10 +143,10 @@ plot(Depth_alt)
 #
 #
 ##Make sure data is limited to State_grid area - skip lines 145-6 if no Alt
-Depth <- st_as_sf(crop(Depth, extent(MicroGrid)))
+Depth <- st_as_sf(crop(Depth, extent(Estuary_area)))
 plot(Depth)
 #
-Depth_alt <- st_as_sf(crop(Depth_alt, extent(Alt_MicroGrid)))
+Depth_alt <- st_as_sf(crop(Depth_alt, extent(Estuary_area)))
 plot(Depth_alt)
 #
 #
@@ -155,14 +155,14 @@ plot(Depth_alt)
 ##Seagrass areas - limited to grid areas
 All_seagrass <- as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial")
 #Limit to primary state grid
-Seagrass <- st_as_sf(crop(All_seagrass, extent(MicroGrid)))
+Seagrass <- st_as_sf(crop(All_seagrass, extent(Estuary_area)))
 #Check data
 plot(Seagrass[Seagrass$SEAGRASS == "Continuous",])
 head(Seagrass)
 st_crs(Seagrass)
 #
 ##Limit to Alt State_grid area - skip lines 154-9 if no Alt
-Seagrass_alt <- st_as_sf(crop(All_seagrass, extent(Alt_MicroGrid)))
+Seagrass_alt <- st_as_sf(crop(All_seagrass, extent(Estuary_area)))
 #Check data
 plot(Seagrass_alt[Seagrass_alt$SEAGRASS == "Continuous",])
 head(Seagrass_alt)
