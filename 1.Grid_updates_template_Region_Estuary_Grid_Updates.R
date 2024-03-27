@@ -568,7 +568,7 @@ Grid_Seagrass_geo <- rbind(
 Grid_Seagrass <- Grid_Seagrass_geo %>% st_set_geometry(NULL)
 #
 #
-#Plot Estuary area against SHA class to confirm areas similar
+#Plot Estuary area against Seagrass area to confirm areas similar
 summary(Site_Grid_working$MGID %in% Grid_Seagrass$MGID) #Check IDs match TRUE = number with SHA class
 tmap_arrange(
   tm_shape(Site_Grid) + tm_polygons(col = "Section"),
