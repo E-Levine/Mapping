@@ -116,13 +116,13 @@ Target_SHA  <- c("AP", "CA", "CR", "PD", "UN") #list of SHA classes to include
 Target_Sections <- c("N", "S") #Enter section code for all sections desired or "NA" if want all sections.
 #
 ##Survey specifications
-#lines 111-112:Number of stations per site/section if require specific number per group - Can replace with NA if #/section varies
+#lines 117-118:Number of stations per site/section if require specific number per group - Can replace with NA if #/section varies
 Num_Target <- 30
 Num_Extra <- 30
-#Lines 114-116: Number of stations total if number per group can vary, proportion of selected cells to select from total per group
+#Lines 120-121: Number of stations total if number per group can vary, proportion of selected cells to select from total per group
 Num_Target_Total <- 100
 Num_Extra_Total <- 100*0.5
-Prop_required <- c(NA) #Proportion required for random selection - if specifying number T/E, then NA
+Prop_required <- c(0.5) #Proportion required for random selection - if specifying number T/E (lines 117/118), then NA
 #
 #
 #
@@ -151,7 +151,7 @@ if(Selection_process == "Ordered"){
      #Filter by HSM score
      filter(if(is.na(HSM_scoring)) MGID == MGID else HSM_Score >= HSM_scoring)%>%
      #Filter by existing data 
-     filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID))
+     filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID) else (MGID == MGID))
   )
   print(qtm(temp, fill = "Depth"))
   
@@ -186,7 +186,7 @@ if(Selection_process == "Ordered"){
      #Filter by HSM score
      filter(if(is.na(HSM_scoring)) MGID == MGID else HSM_Score >= HSM_scoring) %>%
      #Filter by existing data 
-     filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID)) %>%
+     filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID) else (MGID == MGID)) %>%
      rowwise() %>%  mutate(Group = ifelse(SHA_grouping == "Y", paste(Section, Subsection, sep = "-"), Section))
   )
   #
@@ -215,8 +215,8 @@ if(Selection_process == "Ordered"){
   } else {
       count(as.data.frame(temp_r), Section) %>% 
         mutate(Possible_cells = nrow(temp_r), 
-               x = round(n*Prop_required,0), 
-               y = round(n*Prop_required*0.5,0),
+               x = (if(is.na(Prop_required)) Num_Target else round(n*Prop_required,0)), 
+               y = (if(is.na(Prop_required)) Num_Extra else round(n*Prop_required*0.5,0)),
                n_Stations = x+y,
                Total = sum(n_Stations),
                Code = Section) %>%
@@ -242,8 +242,10 @@ if(Selection_process == "Ordered"){
       mutate(Type = "Extra") %>% rename("Station" = rand_num)
     #
     Stations_selected <- rbind(Stations_selected, rbind(Target_r, Extra_r)) %>%
-      group_by(Section, SHA_Class) %>% arrange(Station, .by_group =  TRUE)
+      {if(SHA_classification == "Y") group_by(., Section, SHA_Class) else group_by(., Section)} %>% 
+      arrange(Station, .by_group =  TRUE)
   }
+  head(Stations_selected)
 }
 #
 #
