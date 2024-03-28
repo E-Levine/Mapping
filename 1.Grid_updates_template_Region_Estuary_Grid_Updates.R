@@ -15,10 +15,10 @@
 #rm(list=ls(all=TRUE)) # clears out environment 
 #
 #Load require packages (should install missing packages as necessary)
-if (!require("pacman")) install.packages("pacman")
+if (!require("pacman")) install.packages("pacman") - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
-               sf, raster, spData, rgeos, rgdal,
-               ggmap, ggsn, leaflet, tmap, ggpubr,
+               sf, raster, spData, rgeos, rgdal, terra,
+               leaflet, tmap, 
                install = TRUE) #Mapping and figures
 #
 #Assign Region, Estuary Code, and StateGrid(s). Only assign the Alternate state grid if required.
