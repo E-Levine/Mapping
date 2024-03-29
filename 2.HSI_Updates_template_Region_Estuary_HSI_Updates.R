@@ -16,12 +16,12 @@ rm(list=ls(all=TRUE))
 #Use Alt+O to collapse all sections, Alt+Shift+O to expand all sections
 #
 #
-#Load require packages (install as necessary)
-if (!require("pacman")) install.packages("pacman")
+#Load require packages (install as necessary)  - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
+if (!require("pacman")) {install.packages("pacman")}
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
-               sf, raster, spData, rgeos, rgdal, sp,
-               ggmap, ggsn, tmap, tmaptools, ggpubr, #Mapping and figures
-               scales, broom, RColorBrewer, magicfor, ecorest, #HSV scoring
+               sf, raster, sp, terra,
+               tmap, tmaptools, #Mapping and figures
+               RColorBrewer, magicfor, ecorest, #HSV scoring
                marmap, gstat, xts, dismo, #Depth, interpolation
                install = TRUE) 
 #
