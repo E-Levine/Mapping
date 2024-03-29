@@ -5,7 +5,7 @@
 #
 #
 #Load require packages (will install packages as necessary) - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
-if (!require("pacman")) install.packages("pacman")
+if (!require("pacman")) {install.packages("pacman")}
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
                sf, raster, terra,
                leaflet, tmap, openxlsx,
