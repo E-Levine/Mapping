@@ -4,12 +4,12 @@
 ##Working within any of the regional folders/projects. Do NOT save workspace.
 #
 #
-#load packages, install as needed
-if (!require("pacman")) install.packages("pacman")
+#load packages, install as needed  - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
+if (!require("pacman")) {install.packages("pacman")}
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
-               sf, raster, spData, rgeos, rgdal, tmaptools, 
+               sf, raster, terra, tmaptools, 
                terra, mgcv, fpc, sp, fields, interp, #mgcv - interpolation, fpc::bscan - clustering
-               ggmap, ggsn, leaflet, tmap, ggpubr,
+               leaflet, tmap, 
                install = TRUE) #Mapping and figures
 #
 #
