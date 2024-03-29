@@ -64,7 +64,7 @@ tmap_arrange(
   tm_shape(Oysters_03) + tm_polygons(),
   nrow = 1, ncol = 2)
 #
-#Add Section designations to working df
+#Add survey designations to working df
 Oyster_surveys_1 <- full_join(MicroGrid , Grid_Oysters_2003) %>% #Add data by ID
   mutate(OY_2003 = ifelse(is.na(OY_2003), 0, 1)) #Change NA to 0
 #
@@ -72,6 +72,58 @@ head(Oyster_surveys_1)
 #
 ##Plot to confirm join was correct
 tm_shape(Oyster_surveys_1) + tm_polygons(col ="OY_2003") + tm_layout(frame = FALSE)
+#
+#
+#
+###Assign 2010 grids####
+st_crs(MicroGrid) == st_crs(OR_2010_clean) #Confirm matching CRS
+#
+##Subset of grid cells with Oysters in 2010
+sf_use_s2(FALSE)
+Oysters_10 <- MicroGrid[lengths(st_intersects(MicroGrid, st_as_sf(OR_2010_clean))) > 0,] %>% 
+  mutate(OY_2010 = "1") 
+sf_use_s2(TRUE)
+#
+Grid_Oysters_2010 <- Oysters_10 %>% st_set_geometry(NULL)
+#Plot Estuary area against Oyster presence to confirm areas similar
+tmap_arrange(
+  tm_shape(MicroGrid) + tm_polygons(col = "Section"),
+  tm_shape(Oysters_10) + tm_polygons(),
+  nrow = 1, ncol = 2)
+#
+#Add survey designations to working df
+Oyster_surveys_2 <- full_join(Oyster_surveys_1 , Grid_Oysters_2010) %>% #Add data by ID
+  mutate(OY_2010 = ifelse(is.na(OY_2010), 0, 1)) #Change NA to 0
+#
+head(Oyster_surveys_2)
+#
+##Plot to confirm join was correct
+tm_shape(Oyster_surveys_2) + tm_polygons(col ="OY_2010") + tm_layout(frame = FALSE)
+#
+#
+#
+###Assign 2019 grids####
+st_crs(MicroGrid) == st_crs(OR_2019_clean) #Confirm matching CRS
+#
+##Subset of grid cells with Oysters in 2019
+Oysters_19 <- MicroGrid[lengths(st_intersects(MicroGrid, st_as_sf(OR_2019_clean))) > 0,] %>% 
+  mutate(OY_2019 = "1") 
+#
+Grid_Oysters_2019 <- Oysters_19 %>% st_set_geometry(NULL)
+#Plot Estuary area against Oyster presence to confirm areas similar
+tmap_arrange(
+  tm_shape(MicroGrid) + tm_polygons(col = "Section"),
+  tm_shape(Oysters_19) + tm_polygons(),
+  nrow = 1, ncol = 2)
+#
+#Add survey designations to working df
+Oyster_surveys_3 <- full_join(Oyster_surveys_2 , Grid_Oysters_2019) %>% #Add data by ID
+  mutate(OY_2019 = ifelse(is.na(OY_2019), 0, 1)) #Change NA to 0
+#
+head(Oyster_surveys_3)
+#
+##Plot to confirm join was correct
+tm_shape(Oyster_surveys_3) + tm_polygons(col ="OY_2019") + tm_layout(frame = FALSE)
 #
 #
 #
