@@ -127,3 +127,35 @@ tm_shape(Oyster_surveys_3) + tm_polygons(col ="OY_2019") + tm_layout(frame = FAL
 #
 #
 #
+####Relate survey data####
+#
+Oyster_surveys <- Oyster_surveys_3 %>% mutate(v03_10 = case_when(OY_2003 == 1 & OY_2010 == 0 ~ -1,
+                                                                 OY_2003 == 0 & OY_2010 == 1 ~ 1, 
+                                                                 OY_2003 == 1 & OY_2010 == 1 ~ 0,
+                                                                 OY_2003 == 0 & OY_2010 == 0 ~ 0,
+                                                                 TRUE ~ NA),
+                                              v10_19 = case_when(OY_2010 == 1 & OY_2019 == 0 ~ -1,
+                                                                 OY_2010 == 0 & OY_2019 == 1 ~ 1, 
+                                                                 OY_2010 == 1 & OY_2019 == 1 ~ 0,
+                                                                 OY_2010 == 0 & OY_2019 == 0 ~ 0,
+                                                                 TRUE ~ NA)) %>%
+  rowwise() %>% mutate(SumChange = sum(c(v03_10, v10_19), na.rm = T)) %>%
+  mutate(v03_10 = factor(v03_10, levels = c("-1", "0", "1"), labels = c("-1", "0", "1")),
+         v10_19 = factor(v10_19, levels = c("-1", "0", "1"), labels = c("-1", "0", "1")),
+         SumChange = factor(SumChange, levels = c("-1", "0", "1"), labels = c("-1", "0", "1")))
+#
+#
+tmap_arrange(tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
+               tm_shape(Oyster_surveys) + tm_polygons("v03_10", palette = c("red", "#999999", "#006633"))+
+               tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons()+
+               tm_layout(title = "2003 vs. 2010 surveys", title.position = c("center", "top")),
+             tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
+               tm_shape(Oyster_surveys) + tm_polygons("v10_19", palette = c("red", "#999999", "#006633"))+
+               tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons()+
+               tm_layout(title = "2010 vs. 2019 surveys", title.position = c("center", "top")))
+#
+tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
+  tm_shape(Oyster_surveys) + tm_polygons("SumChange", palette = c("red", "#666666", "darkgreen"), colorNA = "white")+
+  tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons()+
+  tm_layout(title = "Overall change in oyster reef surveys: 2003-2019", title.position = c("center", "top"))
+#
