@@ -14,11 +14,11 @@
 #graphics.off()  # turns off any plots from previous work session
 rm(list=ls(all=TRUE)) # clears out environment 
 #
-#Load require packages (will install packages as necessary)
-if (!require("pacman")) install.packages("pacman")
+#Load require packages (will install packages as necessary) - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
+if (!require("pacman")) {install.packages("pacman")}
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
-               sf, raster, spData, rgeos, rgdal,
-               ggmap, ggsn, leaflet, tmap, ggpubr, 
+               sf, raster, terra,
+               leaflet, tmap,  
                htmlwidgets, openxlsx,
                install = TRUE) #Mapping and figures
 #
