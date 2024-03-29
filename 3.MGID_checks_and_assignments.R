@@ -4,11 +4,11 @@
 #Can be run within any Region project-will save to Region's output data of working project
 #
 #
-#Load require packages (will install packages as necessary)
+#Load require packages (will install packages as necessary) - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
-               sf, raster, spData, rgeos, rgdal,
-               ggmap, ggsn, leaflet, tmap, ggpubr, openxlsx,
+               sf, raster, terra,
+               leaflet, tmap, openxlsx,
                glue, #SQL
                install = TRUE) #Mapping and figures
 #
