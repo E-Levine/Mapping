@@ -16,8 +16,6 @@ pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
 Region <- c("SouthWest") #SouthEast, SouthWest, NorthEast, NorthWest, NorthCentral
 Site_Code <- c("CR") #CR, F5, G5; TB F4, F3
 Compiled_date <- c("2023-08-09") #Microgrid data compiled date
-#State_Grid <- c("F5")
-#Alt_State_Grid <- c("G5") 
 #
 #
 #
@@ -30,7 +28,7 @@ plot(MicroGrid[2])
 ##Estuary area 
 Estuary_area <- st_read(paste0("../Base Layers/Site_Region_Areas/", Site_Code, ".kml"))
 #
-#
+#Oyster layer files
 OR_2003 <- st_read(paste0("../Base Layers/WMD SHapefiles/", Site_Code, "/CR_EB_OysterReefs_2003.shp"))
 OR_2010 <- st_read(paste0("../Base Layers/WMD SHapefiles/", Site_Code, "/cal_substrate_classification_july-2011_utm17n.shp"))
 OR_2019 <- st_read(paste0("../Base Layers/WMD SHapefiles/", Site_Code, "/cal_oysters_nov-2019_FINAL_fl-sp83w.shp"))
@@ -45,6 +43,7 @@ OR_2003_clean <- st_transform(OR_2003, crs="+proj=longlat +datum=WGS84 +no_defs 
 head(OR_2010)
 unique(OR_2010$CLASS_NAME) #Want "Sand / Shell / Rock w-OYS"
 OR_2010_clean <- OR_2010 %>% subset(CLASS_NAME == "Sand / Shell / Rock w-OYS") %>%  st_transform(crs="+proj=longlat +datum=WGS84 +no_defs +type=crs")
+#
 head(OR_2019) #Just oyster polygons. Good.
 OR_2019_clean <- st_transform(OR_2019, crs="+proj=longlat +datum=WGS84 +no_defs +type=crs")
 #
@@ -159,3 +158,11 @@ tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
   tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons()+
   tm_layout(title = "Overall change in oyster reef surveys: 2003-2019", title.position = c("center", "top"))
 #
+#
+#
+#
+###Summarize grid cells
+left_join(Oyster_surveys %>% as.data.frame() %>% group_by(v03_10) %>% summarise("2003-2010" = n()) %>% rename(Change = v03_10),
+          Oyster_surveys %>% as.data.frame() %>% group_by(v10_19) %>% summarise("2010-2019" = n()) %>% rename(Change = v10_19)) %>%
+  left_join(Oyster_surveys %>% as.data.frame() %>% group_by(SumChange) %>% summarise("2003-2019" = n()) %>% rename(Change = SumChange)) %>%
+  filter(Change != "0")
