@@ -137,12 +137,23 @@ Oyster_surveys <- Oyster_surveys_3 %>% mutate(v03_10 = case_when(OY_2003 == 1 & 
                                                                  OY_2010 == 0 & OY_2019 == 1 ~ 1, 
                                                                  OY_2010 == 1 & OY_2019 == 1 ~ 0,
                                                                  OY_2010 == 0 & OY_2019 == 0 ~ 0,
-                                                                 TRUE ~ NA)) %>%
-  rowwise() %>% mutate(SumChange = sum(c(v03_10, v10_19), na.rm = T)) %>%
+                                                                 TRUE ~ NA),
+                                              Surveys = as.factor(case_when(OY_2003 == 1 & OY_2010 == 0 &  OY_2019 == 0 ~ "2003",
+                                                              OY_2003 == 0 & OY_2010 == 1 & OY_2019 == 0 ~ "2010",
+                                                              OY_2003 == 0 & OY_2010 == 0 & OY_2019 == 1 ~ "2019", 
+                                                              OY_2003 == 1 & OY_2010 == 1 & OY_2019 == 0 ~ "2003 & 2010",
+                                                              OY_2003 == 1 & OY_2010 == 0 & OY_2019 == 1 ~ "2003 & 2019",
+                                                              OY_2003 == 0 & OY_2010 == 1 & OY_2019 == 1 ~ "2010 & 2019",
+                                                              OY_2003 == 1 & OY_2010 == 1 & OY_2019 == 1 ~ "All surveys",
+                                                              OY_2003 == 0 & OY_2010 == 0 & OY_2019 == 0 ~ "No surveys",
+                                                              TRUE ~ NA))) %>%
+  rowwise() %>% mutate(Surveys = factor(Surveys, levels = c("2003", "2010", "2019", "2003 & 2010", "2003 & 2019", "2010 & 2019", "All surveys", "No surveys")),
+                       SumChange = sum(c(v03_10, v10_19), na.rm = T)) %>%
   mutate(v03_10 = factor(v03_10, levels = c("-1", "0", "1"), labels = c("-1", "0", "1")),
          v10_19 = factor(v10_19, levels = c("-1", "0", "1"), labels = c("-1", "0", "1")),
          SumChange = factor(SumChange, levels = c("-1", "0", "1"), labels = c("-1", "0", "1")))
 #
+levels(Oyster_surveys$Surveys) #Red, yellow, blue, orange, purple, green, black, white 
 #
 tmap_arrange(tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
                tm_shape(Oyster_surveys) + tm_polygons("v03_10", palette = c("red", "#999999", "#006633"))+
@@ -159,6 +170,11 @@ tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
   tm_layout(title = "Overall change in oyster reef surveys: 2003-2019", title.position = c("center", "top"))
 #
 #
+tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
+  tm_shape(Oyster_surveys) + tm_polygons("Surveys", palette = c("#FF0000", "#FFCC00", "#0066cc", "orange", "#660099",  "#006633", "#000000", "#ffffff"))+
+  tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons()+
+  tm_layout(title = "2003, 2010, & 2019 surveys", title.position = c("center", "top"),
+            legend.position = c("right", "center"))
 #
 #
 ###Summarize grid cells
