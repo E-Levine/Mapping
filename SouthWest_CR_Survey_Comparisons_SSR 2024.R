@@ -172,7 +172,7 @@ tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
 #
 tm_shape(MicroGrid, bbox = extent(Oysters_10)) + tm_borders(col = "#CCCCCC") +
   tm_shape(Oyster_surveys) + tm_polygons("Surveys", palette = c("#FF0000", "#FFCC00", "#0066cc", "orange", "#660099",  "#006633", "#000000", "#ffffff"))+
-  tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons()+
+  tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons(col = "#888888")+
   tm_layout(title = "2003, 2010, & 2019 surveys", title.position = c("center", "top"),
             legend.position = c("right", "center"))
 #
