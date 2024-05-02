@@ -11,10 +11,10 @@
 #rm(list=ls(all=TRUE)) # clears out environment 
 #
 #Load require packages (should install missing packages as necessary)
-if (!require("pacman")) install.packages("pacman")
+if (!require("pacman")) {install.packages("pacman")} #- MAKE SURE PACMAN IS INSTALLED AND RUNNING!
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
-               sf, raster, spData, rgeos, rgdal, terra,
-               leaflet, tmap,
+               sf, raster, terra,
+               leaflet, tmap, 
                install = TRUE) #Mapping and figures
 #
 #Assign Region, Estuary Code, and StateGrid(s). Only assign the Alternate state grid if required.
@@ -27,7 +27,7 @@ Alt_State_Grid <- c("G5")
 ###If an estuary falls completely within 1 StateGrid, skip lines for the "Alt" as instructed in each section.
 #
 #
-####Load files####
+####Load files - first run or updating multiple layers####
 #
 ##MicroGrid - skip lines 34, 40, and 41 if no Alt.
 MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",State_Grid,"_clip.shp"))
@@ -175,6 +175,129 @@ st_crs(Seagrass_alt)
 #
 #
 #
+####Load files - updating specific layers####
+#
+##Estuary MicroGrid - ONLY FOR USE WITH EXISTING DATA - RETURN TO LINE 30 IF FIRST RUN
+#
+#Date of previous data compilation (located in file name)
+Compiled_date <- ("2023-07-27") #format "YYYY-MM-DD"
+#
+MicroGrid <- st_read(paste0("Maps/Shapefiles/", Site_Code,"_compiled_", Compiled_date, ".shp"))
+#
+#Check data, view map  to confirm area
+plot(MicroGrid$geometry)
+head(MicroGrid)
+#
+#
+#
+#
+##Reference Tables - Estuary names and SHA codes - RUN
+(Estuary_long <- read.csv("../Reference Files/Estuary_SiteCodes.csv", na.string = c("Z", "", "NA", " ")))
+(SHA_Codes <- read.csv("../Reference Files/SHA_Class_Codes.csv", na.string = c("Z", "", "NA", " ")) %>% 
+    mutate(Subsection = factor(Subsection, unique(Subsection)))) #Set SHA priority
+(Section_Order <- read.csv("../Reference Files/Section_Orders.csv", na.string = c("Z", "", "NA", " ")) %>%
+    filter(Site == Site_Code) %>% arrange(Order) %>% #Limit to desired Site and order Sections
+    mutate(Section = factor(Section, unique(Section)))) #Set Section priority
+#
+#
+#
+#
+#
+##Estuary area and Sections - change to whole estuary KML layer name and section names - RUN
+#Copy and add Sections as needed for additional sections, changing the number sequentially
+Estuary_area <- st_read("../Base Layers/Site_Region_Areas/TB.kml")
+#
+plot(Estuary_area[2])
+head(Estuary_area)
+#
+Section1 <- st_read("../Base Layers/Site_Region_Areas/TB-Lower.kml") 
+plot(Section1[2])
+#
+Section2 <- st_read("../Base Layers/Site_Region_Areas/TB-Middle.kml") 
+plot(Section2[2])
+#
+Section3 <- st_read("../Base Layers/Site_Region_Areas/TB-OldTB.kml") 
+plot(Section3[2])
+#
+Section4 <- st_read("../Base Layers/Site_Region_Areas/TB-Hillsborough.kml") 
+plot(Section4[2])
+#
+Section5 <- st_read("../Base Layers/Site_Region_Areas/TB-BocaCiega.kml") 
+plot(Section5[2])
+#
+Section6 <- st_read("../Base Layers/Site_Region_Areas/TB-RiverManatee.kml") 
+plot(Section6[2])
+#
+#
+#
+#
+##Oysters in Florida - only run if updating data layer
+FL_Oysters_all <- crop(as(st_read("../Base Layers/Oyster Beds in Florida/Oyster_Beds_in_Florida.shp"), "Spatial"),
+                       extent(MicroGrid))
+#
+#Check data
+plot(FL_Oysters_all)
+head(FL_Oysters_all)
+st_crs(FL_Oysters_all)
+#
+FL_Oysters <- FL_Oysters_all
+#
+#
+#
+#
+##Shellfish Harvest Area - only run if updating data layer
+SHA_all <- as(st_read("../Base Layers/SHA/All_SHAs.shp"), "sf")
+plot(SHA_all[8])
+st_crs(SHA_all)
+SHA_all_t <- st_transform(SHA_all, crs="+proj=longlat +datum=WGS84 +no_defs +type=crs") %>% #Transform coordinates
+  rename("SHA_Class" = "CLASSTYP", "SHA_Name" = "SH_NAME") %>% #rename columns for merging
+  left_join(SHA_Codes) #Add subsection information
+#
+plot(SHA_all_t[8])
+#
+##Limit to State_grid area 
+SHA_grid <- st_crop(st_make_valid(SHA_all_t), #Make valid polygons and crop 
+                    xmin = min(MicroGrid$Long_DD_X), ymin = min(MicroGrid$Lat_DD_Y), 
+                    xmax = max(MicroGrid$Long_DD_X), ymax = max(MicroGrid$Lat_DD_Y)) 
+plot(SHA_grid[8])
+#
+#
+#
+#
+#
+#Bathymetry - only run if updating data layer
+Depth <- as(st_read(paste0("../Base Layers/Bathymetry/", State_Grid, "_depth.shp")), "Spatial")
+crs(Depth)
+#Remove land (>0 values) 
+Depth <- Depth[Depth@data$Depth >= 0,]
+plot(Depth)
+#
+#
+##Make sure data is limited to State_grid area - skip lines 145-6 if no Alt
+Depth <- st_as_sf(crop(Depth, extent(MicroGrid)))
+plot(Depth)
+#
+#
+#
+#
+##Seagrass areas - limited to grid areas - only run if updating data layer
+All_seagrass <- as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial")
+#Limit to primary state grid
+Seagrass <- st_as_sf(crop(All_seagrass, extent(MicroGrid)))
+#Check data
+plot(Seagrass[Seagrass$SEAGRASS == "Continuous",])
+head(Seagrass)
+st_crs(Seagrass)
+#
+#
+#
+#Assign microgrid data to object to work with
+Site_Grid <- MicroGrid
+plot(Site_Grid$geometry)
+#
+#
+#
+#
 ####Base Site microgrid cells to work with####
 #
 Site_Grid <- MicroGrid[lengths(st_intersects(MicroGrid, Estuary_area))> 0,]  %>% dplyr::select(-Estuary)
@@ -190,9 +313,9 @@ Site_Grid_alt_working <- Site_Grid_alt
 #
 #
 #
-####1. Add Estuary and Section Information - CANNOT SKIP####
+####1. Add Estuary and Section Information - CANNOT SKIP UNLESS UPDATING DATA LAYERS - SKIP TO #1 MERGE SECTION FOR DATA LAYER UPDATES####
 #W>E>P>S>B>C
-#Combine and remove duplicates based on priority ranking - add tmp# in line 193 for all sections as needed
+#Combine and remove duplicates based on priority ranking - add tmp# in "Section_cells_geo" for all sections as needed
 tmp1 <- Site_Grid[lengths(st_intersects(Site_Grid, Section1)) > 0,] %>% #Limit to section area
   mutate(Site = Site_Code, Section = "W") %>%  left_join(Estuary_long, by = "Site") #Add Site, Section, Estuary info
 tmp2 <- Site_Grid[lengths(st_intersects(Site_Grid, Section2)) > 0,] %>% 
@@ -207,7 +330,7 @@ tmp6 <- Site_Grid[lengths(st_intersects(Site_Grid, Section6)) > 0,] %>%
   mutate(Site = Site_Code, Section = "C") %>% left_join(Estuary_long, by = "Site")
 #
 #
-#Combine and remove duplicates based on priority ranking - add tmp# in line 199 for all sections as needed
+#Combine and remove duplicates based on priority ranking - add tmp# in "Section_cells_geo" for all sections as needed
 (Section_cells_geo <-  rbind(tmp1, tmp2, tmp3, tmp4, tmp5, tmp6) %>% #Join all sections then reorder Section values
     mutate(Section = factor(Section, levels = unique(Section_Order$Section[order(Section_Order$Order)]), ordered = TRUE)) %>%
     arrange(Section) %>% group_by(MGID) %>%  #Arrange df in order by ID and keep highest ranked Section
@@ -286,18 +409,22 @@ tm_shape(Site_Grid_working_1_alt) + tm_polygons(col ="Section")+ tm_layout(frame
 #
 #
 #
-####1 Merge - run 277 if no Alt, run 278 if working with Alt, run 280-2 for both####
+####1 Merge - run (-A-) if no Alt, run (-B-) if working with Alt, run (-C-) if updating data layers####
 #
 #
-Site_Grid_All <- Site_Grid_working_1
-Site_Grid_All <- rbind(Site_Grid_working_1, Site_Grid_working_1_alt)
+Site_Grid_All <- Site_Grid_working_1 #(-A-)
+Site_Grid_All <- rbind(Site_Grid_working_1, Site_Grid_working_1_alt) #(-B-)
+#
+##ONLY RUN IF UPDATING DATA LAYERS (-C-)
+Site_Grid_All <- Site_Grid
+Site_Grid_working_1 <- Site_Grid
 #
 head(Site_Grid_All)
 #
 tm_shape(Site_Grid_All) + tm_polygons(col ="Section")+ tm_layout(frame = FALSE)
 #Name if saving map: Site_MicroGrid_Sections
 #
-####2. Edit Oysters in FL data - CANNOT SKIP####
+####2. Edit Oysters in FL data - CANNOT SKIP UNLESS UPDATING DATA LAYERS - SKIP TO #2 MERGE SECTION IF NOT UPDATING OYSTERS DATA LAYER####
 #
 #
 plot(FL_Oysters[4])
@@ -332,7 +459,7 @@ tm_shape(Site_Grid_working_2) + tm_polygons(col ="FL_Oysters") + tm_layout(frame
 #
 #
 #
-####2Alt. SKIP CODE SECTION IF NO ALT:  Edit additional Oysters in FL data####
+####2Alt. SKIP CODE SECTION IF NO ALT OR UPDATING DATA LAYER:  Edit additional Oysters in FL data####
 #
 #
 plot(FL_Oysters_alt[4])
@@ -370,11 +497,14 @@ tm_shape(Site_Grid_working_2_alt) + tm_polygons(col ="FL_Oysters") + tm_layout(f
 #
 #
 #
-####2 Merge - run 359 if no Alt, run 360 if working with Alt, run 362-4 for both####
+####2 Merge - run (-A-) if no Alt or updating oyster layer, run (-B-) if working with Alt, run (-C-) if updating data layers but NOT oyster layer####
 #
 #
-Site_Grid_All <- Site_Grid_working_2
-Site_Grid_All <- rbind(Site_Grid_working_2, Site_Grid_working_2_alt) #If no oysters found in alt grid, change Site_Grid_working_2_alt to #1 and run
+Site_Grid_All <- Site_Grid_working_2 #(-A-)
+Site_Grid_All <- rbind(Site_Grid_working_2, Site_Grid_working_2_alt) #(-B-) #If no oysters found in alt grid, change Site_Grid_working_2_alt to #1 and run
+#
+##ONLY RUN IF UPDATING DATA LAYER BUT NOT UPDATING OYSTER LAYER #(-C-)
+Site_Grid_working_2 <- Site_Grid_working_1
 #
 head(Site_Grid_All)
 #
@@ -382,9 +512,9 @@ tm_shape(Site_Grid_All) + tm_polygons(col ="FL_Oysters")+ tm_layout(frame = FALS
 #Name for saving: Site_MicroGrid_Oysters
 #
 #
-####3. Add SHA classifications - CAN SKIP####
+####3. Add SHA classifications - CAN SKIP - SKIP TO #3 MERGE SECTION IF NOT UPDATING SHA DATA LAYER####
 #
-#If not including SHA class in final data, can skip to line 454.
+#If not including SHA class in final data, can skip to #3 Merge section.
 #
 plot(SHA_grid[8])
 st_crs(Site_Grid_working) == st_crs(SHA_grid) #Confirm matching CRS
@@ -424,7 +554,7 @@ tm_shape(Site_Grid_working_3) + tm_polygons(col ="Subsection") + tm_layout(frame
 #
 #
 #
-####3Alt. SKIP CODE SECTION IF NO ALT: Add SHA classifications####
+####3Alt. SKIP CODE SECTION IF NO ALT OR UPDATING DATA LAYER: Add SHA classifications####
 #
 plot(SHA_grid_alt[8])
 st_crs(Site_Grid_alt_working) == st_crs(SHA_grid_alt) #Confirm matching CRS
@@ -466,12 +596,15 @@ tm_shape(Site_Grid_working_3_alt) + tm_polygons(col ="Subsection") + tm_layout(f
 #
 #
 #
-####3 Merge - Only run 454 if skipping SHA class. Run 455 if no Alt, run 456 if working with Alt, run 458-60 for both####
+####3 Merge - Only run (--) if skipping SHA class. Run (-A-) if no Alt or updating SHA layer, run (-B-) if working with Alt, run (-C-) if updating data layer but NOT SHA layer####
 #
 #
-#Site_Grid_All <- Site_Grid_working_2
-Site_Grid_All <- Site_Grid_working_3
-Site_Grid_All <- rbind(Site_Grid_working_3, Site_Grid_working_3_alt) #If no SHA found in Alt grid change Site_Grid_working_3_alt to #2
+#Site_Grid_All <- Site_Grid_working_2 #(--)
+Site_Grid_All <- Site_Grid_working_3 #(-A-)
+Site_Grid_All <- rbind(Site_Grid_working_3, Site_Grid_working_2_alt) #(-B-) #If no SHA found in Alt grid change Site_Grid_working_3_alt to #2
+#
+##ONLY RUN IF UPDATING DATA LAYER BUT NOT UPDATING SHA LAYER #(-C-)
+Site_Grid_working_3 <- Site_Grid_working_2
 #
 head(Site_Grid_All)
 #
@@ -479,9 +612,9 @@ tm_shape(Site_Grid_All) + tm_polygons(col ="Subsection")+ tm_layout(frame = FALS
 #Name for saving: Site_MicroGrid_SHA
 #
 #
-####4. Add depth data - CAN SKIP####
+####4. Add depth data - CAN SKIP - SKIP TO #4 MERGE SECTION IF NOT UPDATING DEPTH DATA LAYER####
 #
-#If not including depth in final data, can skip to line 537.
+#If not including depth in final data, can skip to #4 Merge section.
 #
 plot(Depth)
 st_crs(Site_Grid_working) == st_crs(Depth) #Confirm matching CRS
@@ -521,7 +654,7 @@ tm_shape(Site_Grid_working_4) + tm_polygons(showNA = TRUE, col ="Depth") + tm_la
 #
 #
 #
-####4Alt. SKIP CODE SECTION IF NO ALT: Add depth data####
+####4Alt. SKIP CODE SECTION IF NO ALT OR UPDATING DATA LAYER: Add depth data####
 #
 #
 plot(Depth_alt)
@@ -561,11 +694,14 @@ tm_shape(Site_Grid_working_4_alt) + tm_polygons(showNA = TRUE, col ="Depth") + t
 #
 #
 #
-####4 Merge - Only run 537 is skipping depth. Run 538 if no Alt, run 539 if working with Alt, run 541-3 for both####
+####4 Merge - Only run (--) if skipping depth. Run (-A-) if no Alt or updating depth layer, run (-B-) if working with Alt, run (-C-) if updating data layer but NOT depth layer####
 #
-#Site_Grid_All <- Site_Grid_working_3
-Site_Grid_All <- Site_Grid_working_4
-Site_Grid_All <- rbind(Site_Grid_working_4, Site_Grid_working_4_alt)
+#Site_Grid_All <- Site_Grid_working_3 (--)
+Site_Grid_All <- Site_Grid_working_4 #(-A-)
+Site_Grid_All <- rbind(Site_Grid_working_4, Site_Grid_working_4_alt) #(-B-)
+#
+##ONLY RUN IF UPDATING DATA LAYER BUT NOT UPDATING DEPTH LAYER #(-C-)
+Site_Grid_working_4 <- Site_Grid_working_3
 #
 head(Site_Grid_All)
 #
@@ -573,9 +709,9 @@ tm_shape(Site_Grid_All) + tm_polygons(col ="Depth")+ tm_layout(frame = FALSE)
 #Name for saving: Site_MicroGrid_Depth
 #
 #
-####5. Add Seagrass areas - CAN SKIP####
+####5. Add Seagrass areas - CAN SKIP - SKIP TO #5 MERGE SECTION IF NOT UPDATING DEPTH DATA LAYER####
 #
-#If not including seagrass in final data, can skip to line 630.
+#If not including seagrass in final data, can skip to #5 Merge section.
 #
 plot(Seagrass[5])
 st_crs(Site_Grid_working) == st_crs(Seagrass) #Confirm matching CRS
@@ -630,7 +766,7 @@ tm_shape(Site_Grid_working_5) + tm_polygons(col ="Seagrass") + tm_layout(frame =
 #
 #
 #
-####5Alt. Add Seagrass areas####
+####5Alt. SKIP CODE SECTION IF NO ALT OR UPDATING DATA LAYER: Add Seagrass areas####
 #
 plot(Seagrass_alt[5])
 st_crs(Site_Grid_alt_working) == st_crs(Seagrass_alt) #Confirm matching CRS
@@ -676,11 +812,14 @@ tm_shape(Site_Grid_working_5_alt) + tm_polygons(col ="Seagrass") + tm_layout(fra
 #
 #
 #
-####5 Merge - Only run 630 is skipping seagrass. Run 631 if no Alt, run 632 if working with Alt, run 634-6 for both####
+####5 Merge - Only run (--) if skipping seagrass. Run (-A-) if no Alt or updating seagrass layer, run (-B-) if working with Alt, run (-C-) if updating data layer but NOT seagrass layer ####
 #
-#Site_Grid_All <- Site_Grid_working_4
-Site_Grid_All <- Site_Grid_working_5
-Site_Grid_All <- rbind(Site_Grid_working_5, Site_Grid_working_5_alt)
+#Site_Grid_All <- Site_Grid_working_4 #(--)
+Site_Grid_All <- Site_Grid_working_5 #(-A-)
+Site_Grid_All <- rbind(Site_Grid_working_5, Site_Grid_working_5_alt) #(-B-)
+#
+##ONLY RUN IF UPDATING DATA LAYER BUT NOT UPDATING SEAGRASS LAYER #(-C-)
+Site_Grid_working_5 <- Site_Grid_working_4
 #
 head(Site_Grid_All)
 #

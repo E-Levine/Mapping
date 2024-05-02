@@ -177,6 +177,129 @@ st_crs(Seagrass_alt)
 #
 #
 #
+####Load files - updating specific layers####
+#
+##Estuary MicroGrid - ONLY FOR USE WITH EXISTING DATA - RETURN TO LINE 30 IF FIRST RUN
+#
+#Date of previous data compilation (located in file name)
+Compiled_date <- ("2023-07-27") #format "YYYY-MM-DD"
+#
+MicroGrid <- st_read(paste0("Maps/Shapefiles/", Site_Code,"_compiled_", Compiled_date, ".shp"))
+#
+#Check data, view map  to confirm area
+plot(MicroGrid$geometry)
+head(MicroGrid)
+#
+#
+#
+#
+##Reference Tables - Estuary names and SHA codes - RUN
+(Estuary_long <- read.csv("../Reference Files/Estuary_SiteCodes.csv", na.string = c("Z", "", "NA", " ")))
+(SHA_Codes <- read.csv("../Reference Files/SHA_Class_Codes.csv", na.string = c("Z", "", "NA", " ")) %>% 
+    mutate(Subsection = factor(Subsection, unique(Subsection)))) #Set SHA priority
+(Section_Order <- read.csv("../Reference Files/Section_Orders.csv", na.string = c("Z", "", "NA", " ")) %>%
+    filter(Site == Site_Code) %>% arrange(Order) %>% #Limit to desired Site and order Sections
+    mutate(Section = factor(Section, unique(Section)))) #Set Section priority
+#
+#
+#
+#
+#
+##Estuary area and Sections - change to whole estuary KML layer name and section names - RUN
+#Copy and add Sections as needed for additional sections, changing the number sequentially
+Estuary_area <- st_read("../Base Layers/Site_Region_Areas/TB.kml")
+#
+plot(Estuary_area[2])
+head(Estuary_area)
+#
+Section1 <- st_read("../Base Layers/Site_Region_Areas/TB-Lower.kml") 
+plot(Section1[2])
+#
+Section2 <- st_read("../Base Layers/Site_Region_Areas/TB-Middle.kml") 
+plot(Section2[2])
+#
+Section3 <- st_read("../Base Layers/Site_Region_Areas/TB-OldTB.kml") 
+plot(Section3[2])
+#
+Section4 <- st_read("../Base Layers/Site_Region_Areas/TB-Hillsborough.kml") 
+plot(Section4[2])
+#
+Section5 <- st_read("../Base Layers/Site_Region_Areas/TB-BocaCiega.kml") 
+plot(Section5[2])
+#
+Section6 <- st_read("../Base Layers/Site_Region_Areas/TB-RiverManatee.kml") 
+plot(Section6[2])
+#
+#
+#
+#
+##Oysters in Florida - only run if updating data layer
+FL_Oysters_all <- crop(as(st_read("../Base Layers/Oyster Beds in Florida/Oyster_Beds_in_Florida.shp"), "Spatial"),
+                       extent(MicroGrid))
+#
+#Check data
+plot(FL_Oysters_all)
+head(FL_Oysters_all)
+st_crs(FL_Oysters_all)
+#
+FL_Oysters <- FL_Oysters_all
+#
+#
+#
+#
+##Shellfish Harvest Area - only run if updating data layer
+SHA_all <- as(st_read("../Base Layers/SHA/All_SHAs.shp"), "sf")
+plot(SHA_all[8])
+st_crs(SHA_all)
+SHA_all_t <- st_transform(SHA_all, crs="+proj=longlat +datum=WGS84 +no_defs +type=crs") %>% #Transform coordinates
+  rename("SHA_Class" = "CLASSTYP", "SHA_Name" = "SH_NAME") %>% #rename columns for merging
+  left_join(SHA_Codes) #Add subsection information
+#
+plot(SHA_all_t[8])
+#
+##Limit to State_grid area 
+SHA_grid <- st_crop(st_make_valid(SHA_all_t), #Make valid polygons and crop 
+                    xmin = min(MicroGrid$Long_DD_X), ymin = min(MicroGrid$Lat_DD_Y), 
+                    xmax = max(MicroGrid$Long_DD_X), ymax = max(MicroGrid$Lat_DD_Y)) 
+plot(SHA_grid[8])
+#
+#
+#
+#
+#
+#Bathymetry - only run if updating data layer
+Depth <- as(st_read(paste0("../Base Layers/Bathymetry/", State_Grid, "_depth.shp")), "Spatial")
+crs(Depth)
+#Remove land (>0 values) 
+Depth <- Depth[Depth@data$Depth >= 0,]
+plot(Depth)
+#
+#
+##Make sure data is limited to State_grid area - skip lines 145-6 if no Alt
+Depth <- st_as_sf(crop(Depth, extent(MicroGrid)))
+plot(Depth)
+#
+#
+#
+#
+##Seagrass areas - limited to grid areas - only run if updating data layer
+All_seagrass <- as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial")
+#Limit to primary state grid
+Seagrass <- st_as_sf(crop(All_seagrass, extent(MicroGrid)))
+#Check data
+plot(Seagrass[Seagrass$SEAGRASS == "Continuous",])
+head(Seagrass)
+st_crs(Seagrass)
+#
+#
+#
+#Assign microgrid data to object to work with
+Site_Grid <- MicroGrid
+plot(Site_Grid$geometry)
+#
+#
+#
+#
 ####Base Site microgrid cells to work with - Skip if updating data layer####
 #
 Site_Grid <- MicroGrid[lengths(st_intersects(MicroGrid, Estuary_area))> 0,]  %>% dplyr::select(-Estuary)
