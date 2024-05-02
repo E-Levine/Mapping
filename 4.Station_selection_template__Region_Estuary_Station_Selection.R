@@ -61,8 +61,9 @@ head(Site_df)
 HSM_data <-  read.csv(paste0("Output_data/", Site_Code, "_MicrogridData_HSM_", Start_year,"_", End_year, ".csv"), 
                       na.string = c("Z", "", "NA"))
 head(HSM_data)
-#Merge
+#Merge (If skipping HSM data, run line 62)
 Site_data <- left_join(Site_df, HSM_data %>% dplyr::select(MGID, Salinity_HSI:HSM_Score))
+#Site_data <- Site_df
 head(Site_data)
 #
 #
@@ -91,7 +92,7 @@ head(Comp_Stations)
 #
 #Final combined data frame
 All_data <- left_join((Site_Grid %>% dplyr::select(-Site, -Section, -SHA_Name, -SHA_Class, -Subsection, -Bathy_m)),
-                      Site_data %>% dplyr::select(MGID, Site:HSM_Score)) %>%
+                      Site_data %>% dplyr::select(MGID, Site:last_col())) %>%
   mutate(Seagrass = ifelse(is.na(Seagrass), "Unk", Seagrass))
 #
 head(All_data)
