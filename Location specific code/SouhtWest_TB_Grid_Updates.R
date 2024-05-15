@@ -1,7 +1,3 @@
-####Template for assigning data layers to microgid cells.
-####Update the Region, Estuary/Site Code, and StateGrids in lines 25-28 (lines 21-24 after removing template header). 
-####Delete lines 1-4 then save as new working file.
-#
 ####Regional Florida MicroGrid Metadata Updates
 #
 #
@@ -22,16 +18,16 @@ pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
                install = TRUE) #Mapping and figures
 #
 #Assign Region, Estuary Code, and StateGrid(s). Only assign the Alternate state grid if required.
-Region <- c("SouthEast") #SouthEast, SouthWest, NorthEast, NorthWest, NorthCentral
-Site_Code <- c("SLE")
-State_Grid <- c("H4")
-#Alt_State_Grid <- c("H5") 
+Region <- c("SouthWest") #SouthEast, SouthWest, NorthEast, NorthWest, NorthCentral
+Site_Code <- c("TB")
+State_Grid <- c("F4")
+Alt_State_Grid <- c("F3") 
 #
 ###Throughout this file, a primary State_Grid is used with the option of an alternate or additional StateGrid.
 ###If an estuary falls completely within 1 StateGrid, skip lines for the "Alt" as instructed in each section.
 #
 #
-####Load files - first run or updating multiple layers####
+####Load files  - first run or updating multiple layers####
 #
 ##MicroGrid - skip lines 34, 40, and 41 if no Alt.
 MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",State_Grid,"_clip.shp"))
@@ -61,20 +57,28 @@ head(Alt_MicroGrid)
 #
 ##Estuary area and Sections - change to whole estuary KML layer name and section names
 #Copy and add Sections as needed for additional sections, changing the number sequentially
-Estuary_area <- st_read(paste0("../Base Layers/Site_Region_Areas/",Site_Code,".kml"))
+Estuary_area <- st_read("../Base Layers/Site_Region_Areas/TB.kml")
 #
 plot(Estuary_area[2])
 head(Estuary_area)
 #
-Section1 <- st_read("../Base Layers/Site_Region_Areas/SL-Central.kml") 
+Section1 <- st_read("../Base Layers/Site_Region_Areas/TB-Lower.kml") 
 plot(Section1[2])
 #
-Section2 <- st_read("../Base Layers/Site_Region_Areas/SL-North.kml") 
+Section2 <- st_read("../Base Layers/Site_Region_Areas/TB-Middle.kml") 
 plot(Section2[2])
 #
-Section3 <- st_read("../Base Layers/Site_Region_Areas/SL-South.kml") 
+Section3 <- st_read("../Base Layers/Site_Region_Areas/TB-OldTB.kml") 
 plot(Section3[2])
 #
+Section4 <- st_read("../Base Layers/Site_Region_Areas/TB-Hillsborough.kml") 
+plot(Section4[2])
+#
+Section5 <- st_read("../Base Layers/Site_Region_Areas/TB-BocaCiega.kml") 
+plot(Section5[2])
+#
+Section6 <- st_read("../Base Layers/Site_Region_Areas/TB-RiverManatee.kml") 
+plot(Section6[2])
 #
 #
 #
@@ -143,10 +147,10 @@ plot(Depth_alt)
 #
 #
 ##Make sure data is limited to State_grid area - skip lines 145-6 if no Alt
-Depth <- st_as_sf(crop(Depth, extent(Estuary_area)))
+Depth <- st_as_sf(crop(Depth, extent(MicroGrid)))
 plot(Depth)
 #
-Depth_alt <- st_as_sf(crop(Depth_alt, extent(Estuary_area)))
+Depth_alt <- st_as_sf(crop(Depth_alt, extent(Alt_MicroGrid)))
 plot(Depth_alt)
 #
 #
@@ -155,14 +159,14 @@ plot(Depth_alt)
 ##Seagrass areas - limited to grid areas
 All_seagrass <- as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial")
 #Limit to primary state grid
-Seagrass <- st_as_sf(crop(All_seagrass, extent(Estuary_area)))
+Seagrass <- st_as_sf(crop(All_seagrass, extent(MicroGrid)))
 #Check data
 plot(Seagrass[Seagrass$SEAGRASS == "Continuous",])
 head(Seagrass)
 st_crs(Seagrass)
 #
 ##Limit to Alt State_grid area - skip lines 154-9 if no Alt
-Seagrass_alt <- st_as_sf(crop(All_seagrass, extent(Estuary_area)))
+Seagrass_alt <-  st_as_sf(crop(All_seagrass, extent(Site_Grid_alt)))#st_as_sf(crop(All_seagrass, extent(Alt_MicroGrid)))
 #Check data
 plot(Seagrass_alt[Seagrass_alt$SEAGRASS == "Continuous",])
 head(Seagrass_alt)
@@ -315,15 +319,21 @@ Site_Grid_alt_working <- Site_Grid_alt
 #
 #Combine and remove duplicates based on priority ranking - add tmp# in "Section_cells_geo" for all sections as needed
 tmp1 <- Site_Grid[lengths(st_intersects(Site_Grid, Section1)) > 0,] %>% #Limit to section area
-  mutate(Site = Site_Code, Section = "C") %>%  left_join(Estuary_long, by = "Site") #Add Site, Section, Estuary info
+  mutate(Site = Site_Code, Section = "L") %>%  left_join(Estuary_long, by = "Site") #Add Site, Section, Estuary info
 tmp2 <- Site_Grid[lengths(st_intersects(Site_Grid, Section2)) > 0,] %>% 
-  mutate(Site = Site_Code, Section = "N") %>% left_join(Estuary_long, by = "Site")
+  mutate(Site = Site_Code, Section = "M") %>% left_join(Estuary_long, by = "Site")
 tmp3 <- Site_Grid[lengths(st_intersects(Site_Grid, Section3)) > 0,] %>% 
-  mutate(Site = Site_Code, Section = "S") %>% left_join(Estuary_long, by = "Site")
+  mutate(Site = Site_Code, Section = "O") %>% left_join(Estuary_long, by = "Site")
+tmp4 <- Site_Grid[lengths(st_intersects(Site_Grid, Section4)) > 0,] %>% 
+  mutate(Site = Site_Code, Section = "H") %>% left_join(Estuary_long, by = "Site")
+tmp5 <- Site_Grid[lengths(st_intersects(Site_Grid, Section5)) > 0,] %>% 
+  mutate(Site = Site_Code, Section = "B") %>% left_join(Estuary_long, by = "Site")
+tmp6 <- Site_Grid[lengths(st_intersects(Site_Grid, Section6)) > 0,] %>% 
+  mutate(Site = Site_Code, Section = "R") %>% left_join(Estuary_long, by = "Site")
 #
 #
 #Combine and remove duplicates based on priority ranking - add tmp# in "Section_cells_geo" for all sections as needed
-(Section_cells_geo <-  rbind(tmp1, tmp2, tmp3) %>% #Join all sections then reorder Section values
+(Section_cells_geo <-  rbind(tmp1, tmp2, tmp3, tmp4, tmp5, tmp6) %>% #Join all sections then reorder Section values
     mutate(Section = factor(Section, levels = unique(Section_Order$Section[order(Section_Order$Order)]), ordered = TRUE)) %>%
     arrange(Section) %>% group_by(MGID) %>%  #Arrange df in order by ID and keep highest ranked Section
     slice(1)) 
@@ -456,7 +466,7 @@ tm_shape(Site_Grid_working_2) + tm_polygons(col ="FL_Oysters") + tm_layout(frame
 #
 #
 plot(FL_Oysters_alt[4])
-st_crs(Site_Grid_working_1) == st_crs(FL_Oysters_alt) #Confirm matching CRS
+st_crs(Site_Grid_working_1_alt) == st_crs(FL_Oysters_alt) #Confirm matching CRS
 #
 ##Subset of grid cells with Oysters
 plot(st_join(Site_Grid_working_1_alt, st_as_sf(FL_Oysters_alt))[1])
@@ -609,11 +619,16 @@ tm_shape(Site_Grid_All) + tm_polygons(col ="Subsection")+ tm_layout(frame = FALS
 plot(Depth)
 st_crs(Site_Grid_working) == st_crs(Depth) #Confirm matching CRS
 #
-##Subset of grid cells with depth data - if not working due to Edge degeneration contact EL (same for other sections)
-Grid_Depth_geo <- st_intersection(Site_Grid_working, st_as_sf(Depth)) %>%
+##Subset of grid cells with depth data
+sf_use_s2(FALSE) #Correction to :Loop 0 is not valid: Edge 4 is degenerate (duplicate vertex)
+Grid_Depth_geo <- st_intersection(Site_Grid_working, st_as_sf(Depth)) %>% 
+  #st_intersection(st_transform(Site_Grid_working, 2163), st_make_valid(st_transform(Depth, 2163))) %>% 
+  st_transform(4326) %>% 
   dplyr::select(MGID, Depth) %>% group_by(MGID) %>%
   summarize(Depth = mean(Depth, na.rm = T)) %>% 
   st_make_valid()
+#
+sf_use_s2(TRUE) #Correction to :Loop 0 is not valid: Edge 4 is degenerate (duplicate vertex)
 #
 Grid_Depth <- Grid_Depth_geo %>% st_set_geometry(NULL)
 #
@@ -646,10 +661,12 @@ plot(Depth_alt)
 st_crs(Site_Grid_alt_working) == st_crs(Depth_alt) #Confirm matching CRS
 #
 ##Subset of grid cells with depth data
+sf_use_s2(FALSE) #Correction to :Loop 0 is not valid: Edge 4 is degenerate (duplicate vertex)
 Grid_Depth_geo_alt <- st_intersection(Site_Grid_alt_working, st_as_sf(Depth_alt)) %>%
   dplyr::select(MGID, Depth) %>% group_by(MGID) %>%
   summarize(Depth = mean(Depth, na.rm = T)) %>% 
   st_make_valid()
+sf_use_s2(TRUE) #Correction to :Loop 0 is not valid: Edge 4 is degenerate (duplicate vertex)
 #
 Grid_Depth_alt <- Grid_Depth_geo_alt %>% st_set_geometry(NULL)
 #
@@ -661,7 +678,7 @@ tmap_arrange(
   nrow = 1, ncol = 2)
 #
 #Add designations to working df
-Site_Grid_working_4_alt <- full_join(Site_Grid_working_3_alt , Grid_Depth_alt, by = "MGID") %>% #Add data by ID
+Site_Grid_working_4_alt <- full_join(Site_Grid_working_2_alt , Grid_Depth_alt, by = "MGID") %>% #Add data by ID
   dplyr::select(-Bathy_m) #Drop original Bathy column
 #
 head(Site_Grid_working_4_alt)
@@ -699,16 +716,16 @@ st_crs(Site_Grid_working) == st_crs(Seagrass) #Confirm matching CRS
 Grid_Seagrass_geo <- rbind(
   #Continuous seagrass
   Site_Grid[lengths(st_intersects(Site_Grid_working, st_as_sf(Seagrass %>% filter(SEAGRASS == "Continuous")))) > 0,] %>% 
-    mutate(Seagrass = "Continuous") %>% dplyr::select(MGID, Seagrass),
+  mutate(Seagrass = "Continuous") %>% dplyr::select(MGID, Seagrass),
   #Discontinuous seagrass
   Site_Grid[lengths(st_intersects(Site_Grid_working, st_as_sf(Seagrass %>% filter(SEAGRASS == "Discontinuous")))) > 0,] %>% 
     mutate(Seagrass = "Discontinuous") %>% dplyr::select(MGID, Seagrass)
-) 
+  )
 #
 Grid_Seagrass <- Grid_Seagrass_geo %>% st_set_geometry(NULL)
 #
 #
-#Plot Estuary area against Seagrass area to confirm areas similar
+#Plot Estuary area against SHA class to confirm areas similar
 summary(Site_Grid_working$MGID %in% Grid_Seagrass$MGID) #Check IDs match TRUE = number with SHA class
 tmap_arrange(
   tm_shape(Site_Grid) + tm_polygons(col = "Section"),
@@ -719,7 +736,7 @@ tmap_arrange(
 Site_Grid_working_5 <- full_join(Site_Grid_working_4, Grid_Seagrass, by = "MGID") %>% #Add data by ID
   mutate(Seagrass = ifelse(is.na(Seagrass), NA, Seagrass))
 #
-#Check duplication
+#Check duplication 
 Site_Grid_working_5 %>% group_by(MGID) %>% filter(n()>1) %>% dplyr::select(MGID, Seagrass)
 Site_Grid_working_5 <- Site_Grid_working_5 %>% 
   arrange(Seagrass) %>% group_by(MGID) %>%  #Arrange df in order by ID and keep highest ranked Section
