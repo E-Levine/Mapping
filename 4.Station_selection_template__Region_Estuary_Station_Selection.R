@@ -79,7 +79,8 @@ head(Monitoring)
 Monitor_spdf <- SpatialPointsDataFrame(Monitoring[,3:4], Monitoring)
 crs(Monitor_spdf) <- "+proj=longlat +datum=WGS84 +no_defs +type=crs"
 #
-Monitoring <- "NA" #Run in not including Monitoring stations
+Monitoring <- NA #Run if not including Monitoring stations
+Monitoring_locations <- "NA" #Either "Y" to include in maps, or "NA" to not include
 #
 #Completed survey stations 
 Comp_Stations <- read.csv(paste0("Output_Data/", Site_Code, "_Station_MGIDs.csv"), na.string = c("Z", "", "NA")) %>%
