@@ -101,8 +101,8 @@ head(All_data)
 #
 ###Data filters: Oyster GIS Layer presence, SHA Class, Depth, Seagrass presence, HSM score, previous data 
 #If data should be used to filter, enter desired data/range in following lines. If data is not used or specific entries are required (i.e. SHA class, Section), enter NA.\
-Selection_process <- c("Random") #Will stations be chosen by rank/value of qualifiers ("Ordered") or by random selection within area ("Random")
-Station_selection <- c("Section") #Should cells be selected within the entire estuary ("Site"), within each estuary section ("Section"), or within specific Sections ("NA")
+Selection_process <- c("Ordered") #Will stations be chosen by rank/value of qualifiers ("Ordered"), by random selection within area ("Random"), or by specified boundary ("B_box")
+Station_selection <- c("Section") #Should cells be selected within the entire estuary ("Site"), within each estuary section ("Section"), or within specific Sections or boundary ("NA")
 Oyster_Layer <- c("Y") #Should cells with oysters in the GIS layer be prioritize ("Y"), without oysters be prioritized ("N"), or NA
 SHA_classification <- c("N") #Should SHA classification be used for selection "Y" or "N"
 SHA_grouping <- c("N") #Should SHA class be used for grouping to select stations (i.e. group_by(Section) = "N", group_by(Section, SHA) = "Y")
@@ -118,13 +118,16 @@ Target_SHA  <- c("AP", "CA", "CR", "PD", "UN") #list of SHA classes to include
 Target_Sections <- c("N", "S") #Enter section code for all sections desired or "NA" if want all sections.
 #
 ##Survey specifications
-#lines 117-118:Number of stations per site/section if require specific number per group - Can replace with NA if #/section varies
-Num_Target <- 30
-Num_Extra <- 30
-#Lines 120-121: Number of stations total if number per group can vary, proportion of selected cells to select from total per group
+#Num_[]:Number of stations per site/section if require specific number per group - Can replace with NA if #/section varies
+Num_Target <- 20
+Num_Extra <- 15
+#Num_[]_Total: Number of stations total if number per group can vary, proportion of selected cells to select from total per group
 Num_Target_Total <- 100
 Num_Extra_Total <- 100*0.5
 Prop_required <- c(0.5) #Proportion required for random selection - if specifying number T/E (lines 117/118), then NA
+#
+##Boundary of selection - limiting coordinate in each direction - West, East, South, North
+Boundary <- c(-82.44655, -82.53977, 27.66694, 27.72659)
 #
 #
 #
@@ -155,7 +158,44 @@ if(Selection_process == "Ordered"){
      #Filter by existing data 
      filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID) else (MGID == MGID))
   )
-  print(qtm(temp, fill = "Depth"))
+  print(tm_shape(temp) + tm_polygons(col = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
+  
+  #Assign station numbers
+  t <- temp %>% 
+    {if(Station_selection == "Site") group_by(., Site) else group_by(., Section)} %>% #Group by estuary site or section
+    {if(SHA_grouping == "Y") group_by(., Subsection) else group_by(., Section)} %>% #Group by estuary site or section
+    {if(!is.na(HSM_scoring)) arrange(., desc(HSM_Score)) else (.)} %>% #Arrange in order of decreasing HSM score if included in selection process
+    mutate(Station = 1:n()) #Assign numbers by order within group
+  #
+  #
+  #Collect target and extra stations
+  Target <- t[t$Station < Num_Target+1,] %>% mutate(Type = "Target")
+  Extra <- t[t$Station > Num_Target & t$Station < (Num_Target + Num_Extra + 1),]  %>% mutate(Type = "Extra")
+  #
+  #Compile into final data set 
+  Stations_selected <- rbind(Target, Extra) %>% dplyr::select(Type, Section, Station, MGID:HSM_Score, geometry) %>% 
+    {if(Station_selection == "Site") group_by(., Section) %>% arrange(., Station, .by_group = FALSE) else arrange(., Station, .by_group = TRUE)}
+  head(Stations_selected)
+} else if(Selection_process == "B_box"){
+  (tempb <- All_data %>% 
+     #Restrict grid to within specified boundary
+     subset(Long_DD_X < Boundary[1] & Long_DD_X > Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4]) %>%
+     #Stations by Site or within every Section
+     {if(Station_selection == "Section") group_by(., Section) else if (Station_selection == "Site") group_by(., Site) else if (Station_selection == "NA" & Selection_process != "B_box") filter(., Section %in% Target_Sections) %>% group_by(., Section) else if (Station_selection == "NA" & Selection_process == "B_box") group_by(., Section)} %>%
+     #Filter by Oyster GIS layer
+     filter(if(Oyster_Layer == "Y")  FL_Oysters == "Y" else if (Oyster_Layer == "N") FL_Oysters == "N" else FL_Oysters == FL_Oysters) %>%
+     #Filter by SHA classification
+     filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
+     #Filter by depth
+     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else Depth == Depth) %>%
+     #Filter by seagrass
+     filter(if(Seagrass_presence == "N") !(Seagrass == "Continuous" & Seagrass == "Discontinuous") else if (Seagrass_presence == "Y") (Seagrass == "Continuous" | Seagrass == "Discontinuous") else Seagrass == Seagrass) %>%
+     #Filter by HSM score
+     filter(if(is.na(HSM_scoring)) MGID == MGID else HSM_Score >= HSM_scoring)%>%
+     #Filter by existing data 
+     filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID))
+  )
+  print(tm_shape(tempb) + tm_polygons(col = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
   
   #Assign station numbers
   t <- temp %>% 
@@ -192,7 +232,7 @@ if(Selection_process == "Ordered"){
      rowwise() %>%  mutate(Group = ifelse(SHA_grouping == "Y", paste(Section, Subsection, sep = "-"), Section))
   )
   #
-  print(qtm(temp_r, fill = "Depth"))
+  print(tm_shape(temp_r) + tm_polygons(col = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
   #
   #Determine number of stations per group
   (Stations_needed <- if(Station_selection == "Section" & SHA_grouping == "Y") {
@@ -273,7 +313,7 @@ if(Selection_process == "Ordered"){
                               "Evaluation" = c(Region, Site_Code, State_Grid, ifelse(exists("Alt_State_Grid"), Alt_State_Grid, "NA"), Date,
                                                paste(Start_year, End_year, sep = "-"), paste(if(is.numeric(Survey_timeperiod)) {month.abb[Survey_timeperiod]} else {Survey_timeperiod}, Survey_year, sep = " "),
                                                ifelse(Selection_process == "Ordered", "Ranked values", "Random"),
-                                               ifelse(Station_selection == "NA", paste0("Station IDs assigned within: ", paste(sapply(Target_Sections, paste, collapse = ""), collapse = ", ")), paste0("Station IDs assigned within: ", Station_selection)),
+                                               ifelse(Station_selection == "NA" & Selection_process == "B_box", paste0("Station IDs assigned within specified boundary: ", paste(sapply(Boundary, paste, collapse = ""), collapse = ", ")), ifelse(Station_selection == "NA" & Selection_process != "B_box", paste0("Station IDs assigned within: ", paste(sapply(Target_Sections, paste, collapse = ""), collapse = ", ")), paste0("Station IDs assigned within: ", Station_selection))),
                                                ifelse(Oyster_Layer == "Y", "Oyster presence selected for", ifelse(Oyster_Layer == "N", "Oyster presence selected against", "Oyster layer ignored")),
                                                ifelse(SHA_classification == "Y", paste("SHA classes included:", paste(sapply(Target_SHA, paste, collapse = ""), collapse = ", "), collapse =  " "), "SHA classes ignored"),
                                                ifelse(SHA_grouping == "Y", "SHA class used to group stations for selection", "SHA not used to group stations for selection"),
@@ -281,7 +321,7 @@ if(Selection_process == "Ordered"){
                                                ifelse(Seagrass_presence == "Y", "Exclusion of cells with seagrass", ifelse(Seagrass_presence == "N", "Inclusion of cells with seagrass", "Segrass ignored")),
                                                ifelse(is.numeric(HSM_scoring), paste0("Minimum HSM value included: ", HSM_scoring), "HSM scores ignored"),
                                                ifelse(Existing_survey_data == "Y", "Stations previously surveyed excluded", "All stations allowed"),
-                                               ifelse(Selection_process == "Random", paste(sapply(unique(Stations_needed$Code), paste, collapse = ""), collapse = ", "), paste(sapply(unique(Stations_selected$Section), paste, collapse = ""), collapse = ", ")))))
+                                               ifelse(Selection_process == "B_box", paste("Specified boundary"), ifelse(Selection_process == "Random", paste(sapply(unique(Stations_needed$Code), paste, collapse = ""), collapse = ", "), paste(sapply(unique(Stations_selected$Section), paste, collapse = ""), collapse = ", "))))))
 #
 #
 #Save all raw data and cleaned data for output
@@ -307,11 +347,11 @@ write.xlsx(Output_list, file =  paste0("Output_Data/", Site_Code, "_Survey_Stati
 ####Interactive site and static section maps####
 #
 ###Maps are created and automatically saved. Create network folder with following mapping if needed: Region/Maps/Survey/SiteCode
-#Specify mapping output as either "Site" or "Section". Site will output an overall map, Section will output individuals maps for each section. 
+#Specify mapping output as either "Site", "Section", or "Box". Site and Box will output an overall map for the Site or the boundary specified, Section will output individuals maps for each section. 
 #Oyster layer and SHA classifications will be added as a layer if used in station selection process.
 #Depth will be added as a layer in interactive Site map but not in static Section maps
 #
-Map_output <- c("Section") #"Site" or "Section"
+Map_output <- c("Section") #"Site", "Section", "Box" (boundary specified)
 #
 if(Map_output == "Site") {
   leaflet_map <- tm_shape(name = "Microgrid cells", All_data) + 
@@ -371,6 +411,34 @@ if(Map_output == "Site") {
     tmap_save(leaflet_map, file = paste0("Maps/Survey/", Site_Code, "/", Site_Code, "_", i, "_survey_stations_", Survey_year, "_", Survey_timeperiod, ".jpg"),
               dpi = 1000)
   }
+} else if (Map_output == "Box"){
+  leaflet_map <- tm_shape(name = "Microgrid cells", All_data %>% subset(Long_DD_X < Boundary[1] & Long_DD_X > Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4])) + 
+    tm_borders(col = "gray") + #Cell borders
+    #Add oyster layer if used for selection
+    {if(Oyster_Layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y") %>% 
+                                        mutate(FL_Oysters = ifelse(FL_Oysters == "Y", "Oyster layer", FL_Oysters)))+  #Change text for legend
+        tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)} +
+    #Add SHA classes if used for selection
+    {if(SHA_classification == "Y") tm_shape(name = "SHA classification", All_data %>% filter(!is.na(SHA_Class)))+  
+        tm_polygons("SHA_Class", title = "", palette = c("magma"), alpha = 0.4)} +
+    #Add depth
+    tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5) +
+    #Add stations
+    tm_shape(name = "Survey stations", Stations_selected %>% mutate(Type = paste0(Type, " Station")))+  
+    tm_polygons("Type", title = "", palette = c("YlOrRd")) + #Add colors for Target and Extra stations - use "palette = c("red")" if only Target stations
+    #Add FL shoreline
+    tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+    #Add cell Station numbers
+    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = "AREA")+ 
+    #Add monitoring stations
+    {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+    {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+    tm_layout(main.title = paste0(if(is.numeric(Survey_timeperiod)) month.abb[Survey_timeperiod] else Survey_timeperiod, " ", Survey_year, 
+                                  " Survey Station Selection"), main.title.position = "center")
+  #
+  (Site_map <- tmap_leaflet(leaflet_map))
+  #
+  saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_Bbox_", Survey_year, "_", Survey_timeperiod, "_widget.html"))
 }
 #
 #
