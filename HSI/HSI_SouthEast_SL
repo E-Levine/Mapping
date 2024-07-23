@@ -17,6 +17,7 @@
 #Load require packages (should install missing packages as necessary) - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
 if (!require("pacman")) {install.packages("pacman")}
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
+               openxlsx, magicfor,
                sf, raster, terra,
                leaflet, tmap, 
                install = TRUE) #Mapping and figures
@@ -167,6 +168,67 @@ head(Site_Grid_All)
 tm_shape(Site_Grid_All) + tm_polygons(col ="Section")+ tm_layout(frame = FALSE)
 #Name if saving map: Site_MicroGrid_Sections
 #
+#
+#
+#
+#
+####Florida Oysters####
+#
+#Load shapefile and crop to estuary area
+if(Florida_Oysters == "YES" & Alt_StateGrid == "NO"){
+  FL_Oysters_all <- crop(as(st_read("../Base Layers/Oyster Beds in Florida/Oyster_Beds_in_Florida.shp"), "Spatial"),
+                         extent(Site_Grid))
+  FL_Oysters <- st_as_sf(crop(FL_Oysters_all, extent(Site_Grid)))
+} else if(Florida_Oysters == "YES" & Alt_StateGrid == "YES"){
+  FL_Oysters_all <- crop(as(st_read("../Base Layers/Oyster Beds in Florida/Oyster_Beds_in_Florida.shp"), "Spatial"),
+                         extent(merge(extent(Site_Grid), extent(Site_Grid_alt))))
+  FL_Oysters_alt <- st_as_sf(crop(FL_Oysters_all, extent(merge(extent(Site_Grid), extent(Site_Grid_alt)))))
+} else if(Florida_Oysters == "NO"){
+  FL_Oysters_all <- "Florida Oysters not included in model."
+  FL_Oysters <- "Florida Oysters not included in model."
+}
+#
+#Check data
+plot(FL_Oysters_all); plot(FL_Oysters[4])
+head(FL_Oysters_all)
+st_crs(FL_Oysters_all)
+#
+##Score parameter
+if(Florida_Oysters == "YES"){
+  #Scale values using HSI S1 curve
+  FL_Oysters_temp <- FL_Oysters %>% mutate(COMMENTS = case_when(is.na(COMMENTS) ~ "None", TRUE ~ COMMENTS))
+  magic_for(print)
+  for (i in FL_Oysters_temp$COMMENTS){
+    O1_SIV <- SIcalc(Oyster_curve_m[,1:2], c(i)) 
+    print(O1_SIV)
+    }
+  temp_o1 <- magic_result_as_dataframe()
+  FL_Oysters <- cbind(FL_Oysters, temp_o1)
+  rm(FL_Oysters_temp)
+  head(FL_Oysters)
+  #Add scores to MGIDs
+  Grid_Oysters_geo <- st_intersection(Site_Grid_working, FL_Oysters) %>% dplyr::select(MGID, O1_SIV) %>% st_make_valid()
+  #Add designations to working df
+  Site_Grid_working_2 <- full_join(Site_Grid_working_1 , Grid_Oysters_geo %>% st_set_geometry(NULL), by = "MGID") #Add data by ID
+  Site_Grid_All <- Site_Grid_working_2
+  } else {
+    (FL_Oysters <- "Florida Oysters not included in model.")
+    Site_Grid_working_2 <- Site_Grid_working_1
+    Site_Grid_All <- Site_Grid_working_2
+  }
+#
+#
+#
+#
+#Plot Estuary area against Oyster presence to confirm areas similar
+summary(Site_Grid_working_1$MGID %in% Grid_Oysters_geo$MGID) #Check IDs match TRUE = number of cells with depth measurement
+tmap_options(check.and.fix = TRUE)
+tmap_arrange(
+  tm_shape(Site_Grid_working_1) + tm_polygons(col = "Section"),
+  tm_shape(Grid_Oysters_geo) + tm_polygons(col = "O1_SIV", palette = c("BrBG")),
+  nrow = 1, ncol = 2)
+tm_shape(Site_Grid_All) + tm_polygons(col ="O1_SIV")+ tm_layout(frame = FALSE)
+#Name for saving: Site_MicroGrid_Oysters
 #
 #
 #
