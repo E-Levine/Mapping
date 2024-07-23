@@ -1,6 +1,7 @@
 # Mapping
 Code for various mapping projects using R.
 
+SURVEY
 *Templates for <br> 
 1)Updating grids, <br>
 2)Updating HSI evaluation, <br>
@@ -10,6 +11,7 @@ Code for various mapping projects using R.
 6)Mapping of survey results and basic summary data based on grid cells and oyster polygons<br>
 *Code for mapping completed randomized survey stations within the Oyster Mapping folders.
 
+HSI
 
 **Updates**
  6/5/24 - #4 Updated for proper selection/exclusion of monitoring stations.
