@@ -1,0 +1,44 @@
+####Template for assigning data layers to microgid cells.
+####Update the Region, Estuary/Site Code, and StateGrids in the "Specifications" Section 
+####Save as new working file then delete lines 1-4.
+#
+####Regional Florida MicroGrid Metadata Updates
+#
+#
+#Use Alt+O to collapse all sections, Alt+Shift+O to expand all sections
+#Each section builds upon the previous to add data to the microgrids:
+#Data order: Estuary and Sections, Oysters in FL, SHA classifications, Seagrass area
+#
+#
+#.rs.restartR() #Restarts session (good if rerunning after working with other files)
+#graphics.off()  # turns off any plots from previous work session
+#rm(list=ls(all=TRUE)) # clears out environment 
+#
+#Load require packages (should install missing packages as necessary) - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
+if (!require("pacman")) {install.packages("pacman")}
+pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
+               sf, raster, terra,
+               leaflet, tmap, 
+               install = TRUE) #Mapping and figures
+#
+####Specifications####
+#
+#Assign Region, Estuary Code, and StateGrid(s). Only assign the Alternate state grid if required.
+Region <- c("SouthEast") #SouthEast, SouthWest, NorthEast, NorthWest, NorthCentral
+Site_Code <- c("SL") #Two-letter Site code
+State_Grid <- c("H4")
+#Alt_State_Grid <- c("H5") 
+#
+###Throughout this file, a primary State_Grid is used with the option of an alternate or additional StateGrid.
+###If an estuary falls completely within 1 StateGrid, skip lines for the "Alt" as instructed in each section.
+#
+#Specify if data should be included ("YES") or not included ("NO")
+Florida_Oysters <- c("YES")
+Florida_Seagrass <- c("YES")
+Florida_Waterways <- c("YES")
+Florida_SHA <- c("NO")
+Depth <- c("YES")
+Salinity <- c("YES")
+Temperature <- c("YES")
+#
+#
