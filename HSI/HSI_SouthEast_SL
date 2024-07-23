@@ -42,3 +42,47 @@ Salinity <- c("YES")
 Temperature <- c("YES")
 #
 #
+####Reference Tables####
+#Estuary names and SHA codes
+(Estuary_long <- read.csv("../Reference Files/Estuary_SiteCodes.csv", na.string = c("Z", "", "NA", " ")))
+(SHA_Codes <- read.csv("../Reference Files/SHA_Class_Codes.csv", na.string = c("Z", "", "NA", " ")) %>% 
+    mutate(Subsection = factor(Subsection, unique(Subsection)))) #Set SHA priority
+(Section_Order <- read.csv("../Reference Files/Section_Orders.csv", na.string = c("Z", "", "NA", " ")) %>%
+    filter(Site == Site_Code) %>% arrange(Order) %>% #Limit to desired Site and order Sections
+    mutate(Section = factor(Section, unique(Section)))) #Set Section priority
+#
+#
+#
+#
+####Load grid cells of interest####
+#
+##MicroGrid - skip "Alt[...]" lines if no Alternate StateGrid
+#Load StateGrid, check data, view map  to confirm area
+MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",State_Grid,"_clip.shp"))
+plot(MicroGrid$geometry)
+head(MicroGrid)
+#
+Alt_MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",Alt_State_Grid,"_clip.shp"))
+plot(Alt_MicroGrid$geometry) #Check alternate
+head(Alt_MicroGrid)
+#
+#
+##Estuary area and Sections - change to whole estuary KML layer name and section names
+#Copy and add Sections as needed for additional sections, changing the number sequentially
+Estuary_area <- st_read(paste0("../Base Layers/Site_Region_Areas/",Site_Code,".kml"))
+#
+plot(Estuary_area[2])
+head(Estuary_area)
+#
+Section1 <- st_read("../Base Layers/Site_Region_Areas/SL-Central.kml") 
+plot(Section1[2])
+#
+Section2 <- st_read("../Base Layers/Site_Region_Areas/SL-North.kml") 
+plot(Section2[2])
+#
+Section3 <- st_read("../Base Layers/Site_Region_Areas/SL-South.kml") 
+plot(Section3[2])
+#
+#
+#
+#
