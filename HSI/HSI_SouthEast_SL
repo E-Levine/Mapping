@@ -159,6 +159,13 @@ head(Site_Grid_working_1)
 ##Plot to confirm join was correct
 tm_shape(Site_Grid_working_1) + tm_polygons(col ="Section") + tm_layout(frame = FALSE)
 #
+#Merge with working file
+Site_Grid_All <- Site_Grid_working_1
+#
+head(Site_Grid_All)
+#
+tm_shape(Site_Grid_All) + tm_polygons(col ="Section")+ tm_layout(frame = FALSE)
+#Name if saving map: Site_MicroGrid_Sections
 #
 #
 #
