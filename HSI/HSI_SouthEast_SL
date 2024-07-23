@@ -80,6 +80,16 @@ ggplot()+
   xlab("Seagrass") + ylab("SI Score")+
   theme_classic()
 #
+##Waterways
+Waterways_curve <- readWorkbook("../Reference Files/Parameter_Scoring.xlsx", sheet = 'Waterways', detectDates = TRUE) %>% arrange(desc(W1_SIV))
+Waterways_curve_m <- as.matrix(Waterways_curve)
+ggplot()+
+  geom_line(data = Waterways_curve, aes(W1_ways, W1_SIV, group = 1), color = "red", linetype = 1)+
+  scale_y_continuous(limits = c(0,1.01), expand = c(0,0))+
+  scale_x_discrete(expand = c(0,0))+
+  xlab("Waterways") + ylab("SI Score")+
+  theme_classic()
+#
 #
 #
 #
@@ -313,7 +323,7 @@ tmap_arrange(
   tm_shape(Grid_Seagrass_geo) + tm_polygons(col = "SG1_SIV", palette = c("BrBG")),
   nrow = 1, ncol = 2)
 tm_shape(Site_Grid_All) + tm_polygons(col ="SG1_SIV")+ tm_layout(frame = FALSE)
-#Name for saving: Site_MicroGrid_Oysters
+#Name for saving: Site_MicroGrid_Seagrass
 #
 #
 #
