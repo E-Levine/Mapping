@@ -387,15 +387,35 @@ if(Map_area == "Site"){
     t3@data %>% subset(Type == "Present/In") %>% summarise(Pres_In = n()), #Yes/Total in shapefile layer
     t3@data %>% subset(Type == "Absent/In") %>% summarise(Abs_In = n()), #No/Total in shapefile layer
     t@data %>% summarise(Total = n())) %>%  #Total number of polygons) %>%
-    mutate(Remains = Total - Pres_In - Abs_In,
-           Pct_Pres_In = Pres_In/(Pres_In + Abs_In)*100,
-           Pct_Abs_In = Abs_In/(Pres_In + Abs_In)*100),
+    mutate(Polygons_Remaining = Total - Pres_In - Abs_In,
+           Pct_Pres_In_Polys = Pres_In/(Pres_In + Abs_In)*100,
+           Pct_Abs_In_Polys = Abs_In/(Pres_In + Abs_In)*100),
   t3@data %>% subset(Type == "Present/Out") %>% summarise(Pres_Out = n()), #All possible "Yes"
   t3@data %>% subset(Type == "Absent/Out") %>% summarise(Abs_Out = n())) %>% #All possible "No"
-   mutate(Pct_Pres_Out = round(Pres_Out/(Pres_Out + Abs_Out)*100, 2),
-          Pct_Abs_Out = round(Abs_Out/(Pres_Out + Abs_Out)*100, 2),
-          Pct_Oy_Pres = round(((Pres_In + Pres_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100,2),
-          Pct_Oy_Abs= round(((Abs_In + Abs_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100, 2)))
+   mutate(Pct_Pres_Out_Polys = round(Pres_Out/(Pres_Out + Abs_Out)*100, 2),
+          Pct_Abs_Out_Polys = round(Abs_Out/(Pres_Out + Abs_Out)*100, 2),
+          Pct_Oy_Pres_All = round(((Pres_In + Pres_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100,2),
+          Pct_Oy_Abs_All= round(((Abs_In + Abs_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100, 2)))
+#
+Poly_section_summ <- data.frame()
+for(i in unique(Comp_Stations$Section)){
+  temp <- cbind(
+    cbind(
+      t3@data %>% filter(Section == i) %>% subset(Type == "Present/In") %>% summarise(Pres_In = n()), #Yes/Total in shapefile layer
+      t3@data %>% filter(Section == i) %>% subset(Type == "Absent/In") %>% summarise(Abs_In = n()), #No/Total in shapefile layer
+      t@data %>% summarise(Total = n())) %>%  #Total number of polygons) %>%
+      mutate(Polygons_Remaining = Total - Pres_In - Abs_In,
+             Pct_Pres_In_Polys = Pres_In/(Pres_In + Abs_In)*100,
+             Pct_Abs_In_Polys = Abs_In/(Pres_In + Abs_In)*100),
+    t3@data %>% filter(Section == i) %>% subset(Type == "Present/Out") %>% summarise(Pres_Out = n()), #All possible "Yes"
+    t3@data %>% filter(Section == i) %>% subset(Type == "Absent/Out") %>% summarise(Abs_Out = n())) %>% #All possible "No"
+    mutate(Pct_Pres_Out_Polys = round(Pres_Out/(Pres_Out + Abs_Out)*100, 2),
+           Pct_Abs_Out_Polys = round(Abs_Out/(Pres_Out + Abs_Out)*100, 2),
+           Pct_Oy_Pres_All = round(((Pres_In + Pres_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100,2),
+           Pct_Oy_Abs_All= round(((Abs_In + Abs_Out)/(Pres_In + Pres_Out + Abs_In + Abs_Out))*100, 2)) %>%
+    mutate(Section = i) %>% dplyr::select(Section, everything())
+  Poly_section_summ <- rbind(Poly_section_summ, temp)
+}
 #
 #
 #
