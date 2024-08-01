@@ -279,16 +279,103 @@ t3@data <- t3@data %>%
 #
 # 
 #
-#Map of polygons checked and station locations
-(Polygon_checks <- tm_shape(t)+
-    tm_polygons(col = "Checked")+
-    tm_shape(t3)+
-    tm_symbols(shape = 16, size = 1, col = "Type", palette = c("RdYlGn"), border.col = "black")+
-    tm_shape(st_make_valid(FL_outline)) + tm_polygons() +  
-    tm_layout(main.title = paste0(Site_Code, " Survey v. Polygon Comparison"), main.title.position = "center")+
-    tm_view(symbol.size.fixed = FALSE))
+##Map of either Site or Sections, either static or interactive - based on selections in "Mapping Options" (starting line 97)
+if(Map_area == "Site"){
+  if(Map_type == "Static") {
+    leaflet_map <- tm_shape(name = "Oyster Polygons", t) + 
+      tm_polygons(col = "Checked") + 
+      #Add depth
+      {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add locations surveyed
+      tm_shape(name = "Surveyed locations", t3)+  
+      tm_symbols(shape = 16, size = 1, col = "Type", palette = c("RdYlGn"), border.col = "black")+
+      #Add FL shoreline
+      tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+      #Add monitoring stations
+      {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+      {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+      tm_layout(main.title = paste0(Site_Code, " Survey v. Polygon Comparison"), main.title.position = "center")+
+      tm_view(symbol.size.fixed = FALSE)
+    #
+    (Site_map <- leaflet_map)
+    #
+    tmap_save(Site_map, file = paste0("Maps/Survey/", Site_Code, "/Completed/", Site_Code, "_survey_polygon_summary.jpg"), dpi = 1000)
+    #
+  } else if(Map_type == "Inter"){
+    leaflet_map <- tm_shape(name = "Oyster Polygons", t) + 
+      tm_polygons(col = "Checked") + 
+      #Add depth
+      {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add locations surveyed
+      tm_shape(name = "Surveyed locations", t3)+  
+      tm_symbols(shape = 16, size = 0.0025, col = "Type", palette = c("RdYlGn"), border.col = "black")+
+      #Add FL shoreline
+      tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+      #Add monitoring stations
+      {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+      {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+      tm_layout(main.title = paste0(Site_Code, " Survey v. Polygon Comparison"), main.title.position = "center")+
+      tm_view(symbol.size.fixed = FALSE)
+    #
+    (Site_map <- tmap_leaflet(leaflet_map))
+    #
+    saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/Completed/Interactive maps/", Site_Code,"_survey_polygon_summary_widget.html"))
+    #
+  }
+} else if(Map_area == "Section"){
+  if(Map_type == "Static") { 
+    for(i in unique(Comp_Stations$Section)){
+      leaflet_map <- tm_shape(All_data %>% filter(Section == i)) + 
+        tm_borders(col = "gray", alpha = 0) + #Cell borders
+        #Add depth
+        {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add checked polygons
+        tm_shape(name = "Surveyed locations", t)+  
+        tm_polygons(col = "Checked", alpha = 0.8) + 
+        #Add presence/absence
+        tm_shape(t3)+
+        tm_symbols(shape = 16, size = 1, col = "Type", palette = c("RdYlGn"), border.col = "black")+
+        #Add FL shoreline
+        tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+        #Add monitoring stations
+        {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.75, col = "black", border.col = "black", alpha = 0.4)}+
+        {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+        tm_layout(main.title = paste0(Site_Code, " ", i, " Survey"), main.title.position = "center")+
+        tm_view(symbol.size.fixed = FALSE)
+      #
+      tmap_save(leaflet_map, file = paste0("Maps/Survey/", Site_Code, "/Completed/", Site_Code, "_", i, "_survey_polygon_summary.jpg"),
+                dpi = 1000)
+      #
+    }
+  } else if(Map_type == "Inter"){
+    for(i in unique(Comp_Stations$Section)){
+      leaflet_map <- tm_shape(All_data %>% filter(Section == i)) + 
+        tm_borders(col = "gray", alpha = 0) + #Cell borders
+        #Add depth
+        {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add checked polygons
+        tm_shape(name = "Surveyed locations", t)+  
+        tm_polygons(col = "Checked", alpha = 0.8) + 
+        #Add presence/absence
+        tm_shape(t3)+
+        tm_symbols(shape = 16, size = 0.0025, col = "Type", palette = c("RdYlGn"), border.col = "black")+
+        #Add FL shoreline
+        tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+        #Add monitoring stations
+        {if(Monitoring != "NA") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+        {if(Monitoring != "NA") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations"))}+
+        tm_layout(main.title = paste0(Site_Code, " Survey"), main.title.position = "center")+
+        tm_view(symbol.size.fixed = FALSE)
+      #
+      (Site_map <- tmap_leaflet(leaflet_map))
+      #
+      saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/Completed/Interactive maps/", Site_Code,"_", i,"_survey_polygon_summary_widget.html"))
+    }
+    #
+  }
+}
 #
-tmap_save(Polygon_checks, file = paste0("Maps/Survey/", Site_Code, "/Completed/", Site_Code, "_polygon_summary.jpg"), dpi = 1000)
+#
 #
 #
 #
