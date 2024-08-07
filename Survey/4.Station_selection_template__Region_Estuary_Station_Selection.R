@@ -200,16 +200,17 @@ if(Selection_process == "Ordered"){
   print(tm_shape(tempb) + tm_polygons(col = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
   
   #Assign station numbers
-  t <- temp %>% 
+  tb <- tempb %>% 
     {if(Station_selection == "Site") group_by(., Site) else group_by(., Section)} %>% #Group by estuary site or section
     {if(SHA_grouping == "Y") group_by(., Subsection) else group_by(., Section)} %>% #Group by estuary site or section
     {if(!is.na(HSM_scoring)) arrange(., desc(HSM_Score)) else (.)} %>% #Arrange in order of decreasing HSM score if included in selection process
+    slice(sample(1:n())) %>% #Randomize within specified boundary
     mutate(Station = 1:n()) #Assign numbers by order within group
   #
   #
   #Collect target and extra stations
-  Target <- t[t$Station < Num_Target+1,] %>% mutate(Type = "Target")
-  Extra <- t[t$Station > Num_Target & t$Station < (Num_Target + Num_Extra + 1),]  %>% mutate(Type = "Extra")
+  Target_b <- tb[tb$Station < Num_Target+1,] %>% mutate(Type = "Target")
+  Extra_b <- tb[tb$Station > Num_Target & tb$Station < (Num_Target + Num_Extra + 1),]  %>% mutate(Type = "Extra")
   #
   #Compile into final data set 
   Stations_selected <- rbind(Target, Extra) %>% dplyr::select(Type, Section, Station, MGID:HSM_Score, geometry) %>% 
