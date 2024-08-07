@@ -152,7 +152,7 @@ if(Selection_process == "Ordered"){
      #Filter by SHA classification
      filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
      #Filter by depth
-     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else Depth == Depth) %>%
+     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else MGID == MGID) %>%
      #Filter by seagrass
      filter(if(Seagrass_presence == "N") !(Seagrass == "Continuous" & Seagrass == "Discontinuous") else if (Seagrass_presence == "Y") (Seagrass == "Continuous" | Seagrass == "Discontinuous") else Seagrass == Seagrass) %>%
      #Filter by HSM score
@@ -189,7 +189,7 @@ if(Selection_process == "Ordered"){
      #Filter by SHA classification
      filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
      #Filter by depth
-     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else Depth == Depth) %>%
+     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else MGID == MGID) %>%
      #Filter by seagrass
      filter(if(Seagrass_presence == "N") !(Seagrass == "Continuous" & Seagrass == "Discontinuous") else if (Seagrass_presence == "Y") (Seagrass == "Continuous" | Seagrass == "Discontinuous") else Seagrass == Seagrass) %>%
      #Filter by HSM score
@@ -224,7 +224,7 @@ if(Selection_process == "Ordered"){
      #Filter by SHA classification
      filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
      #Filter by depth
-     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else Depth == Depth) %>%
+     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else MGID == MGID) %>%
      #Filter by seagrass
      filter(if(Seagrass_presence == "N") !(Seagrass == "Continuous" & Seagrass == "Discontinuous") else if (Seagrass_presence == "Y") (Seagrass == "Continuous" | Seagrass == "Discontinuous") else Seagrass == Seagrass) %>%
      #Filter by HSM score
