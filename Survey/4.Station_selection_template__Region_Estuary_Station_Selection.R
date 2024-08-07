@@ -181,7 +181,7 @@ if(Selection_process == "Ordered"){
 } else if(Selection_process == "B_box"){
   (tempb <- All_data %>% 
      #Restrict grid to within specified boundary
-     subset(Long_DD_X < Boundary[1] & Long_DD_X > Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4]) %>%
+     subset(Long_DD_X > Boundary[1] & Long_DD_X < Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4]) %>%
      #Stations by Site or within every Section
      {if(Station_selection == "Section") group_by(., Section) else if (Station_selection == "Site") group_by(., Site) else if (Station_selection == "NA" & Selection_process != "B_box") filter(., Section %in% Target_Sections) %>% group_by(., Section) else if (Station_selection == "NA" & Selection_process == "B_box") group_by(., Section)} %>%
      #Filter by Oyster GIS layer
@@ -428,7 +428,7 @@ if(Map_output == "Site") {
     }
   }
 } else if (Map_output == "Box"){
-  leaflet_map <- tm_shape(name = "Microgrid cells", All_data %>% subset(Long_DD_X < Boundary[1] & Long_DD_X > Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4])) + 
+  leaflet_map <- tm_shape(name = "Microgrid cells", All_data %>% subset(Long_DD_X > Boundary[1] & Long_DD_X < Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4])) + 
     tm_borders(col = "gray") + #Cell borders
     #Add oyster layer if used for selection
     {if(Oyster_Layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y") %>% 
