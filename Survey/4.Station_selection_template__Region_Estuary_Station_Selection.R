@@ -128,6 +128,8 @@ Prop_required <- c(0.5) #Proportion required for random selection - if specifyin
 #
 ##Boundary of selection - limiting coordinate in each direction - West, East, South, North
 Boundary <- c(-82.44655, -82.53977, 27.66694, 27.72659)
+Include_name <- c("Y") #Should a specific name be included in file naming (to identify bounded area)? Y/N
+B_name <- c("PRassa_TarponB") #What name should be used?
 #
 #
 #
@@ -336,10 +338,15 @@ Output_list <- list("Summary" = Survey_summary,
                     "Cleaned_data" = Cleaned_data)
 #
 #Export to Excel
-write.xlsx(Output_list, file =  paste0("Output_Data/", Site_Code, "_Survey_Stations_", 
-                                       Survey_year, "_", Survey_timeperiod,".xlsx"), 
-           colnames = TRUE, rowNames = FALSE, keepNA = TRUE, na.string = c("Z"), colWidths = "auto")
-
+if(Include_name == "N"){
+  write.xlsx(Output_list, file =  paste0("Output_Data/", Site_Code, "_Survey_Stations_", 
+                                         Survey_year, "_", Survey_timeperiod,".xlsx"), 
+             colnames = TRUE, rowNames = FALSE, keepNA = TRUE, na.string = c("Z"), colWidths = "auto")
+} else {
+  write.xlsx(Output_list, file =  paste0("Output_Data/", Site_Code, "_Survey_Stations_", 
+                                         Survey_year, "_", Survey_timeperiod, "_", B_name,".xlsx"), 
+             colnames = TRUE, rowNames = FALSE, keepNA = TRUE, na.string = c("Z"), colWidths = "auto")
+}
 #
 #
 #
@@ -380,7 +387,11 @@ if(Map_output == "Site") {
   #
   (Site_map <- tmap_leaflet(leaflet_map))
   #
-  saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_", Survey_year, "_", Survey_timeperiod, "_widget.html"))
+  if(Include_name == "N"){
+      saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_", Survey_year, "_", Survey_timeperiod, "_widget.html"))
+    } else {
+      saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_", Survey_year, "_", Survey_timeperiod, "_", B_name, "_widget.html"))
+    }
 } else if (Map_output == "Section"){
   #Make plots
   #map_list = list()
@@ -408,8 +419,13 @@ if(Map_output == "Site") {
                                     " ", i, " Survey Station Selection"),
                 main.title.position = "center")
     #
-    tmap_save(leaflet_map, file = paste0("Maps/Survey/", Site_Code, "/", Site_Code, "_", i, "_survey_stations_", Survey_year, "_", Survey_timeperiod, ".jpg"),
-              dpi = 1000)
+    if(Include_name == "N"){
+      tmap_save(leaflet_map, file = paste0("Maps/Survey/", Site_Code, "/", Site_Code, "_", i, "_survey_stations_", Survey_year, "_", Survey_timeperiod, ".jpg"),
+                dpi = 1000)
+    } else {
+      tmap_save(leaflet_map, file = paste0("Maps/Survey/", Site_Code, "/", Site_Code, "_", i, "_survey_stations_", Survey_year, "_", Survey_timeperiod, "_", B_name, ".jpg"),
+                dpi = 1000)
+    }
   }
 } else if (Map_output == "Box"){
   leaflet_map <- tm_shape(name = "Microgrid cells", All_data %>% subset(Long_DD_X < Boundary[1] & Long_DD_X > Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4])) + 
@@ -438,7 +454,11 @@ if(Map_output == "Site") {
   #
   (Site_map <- tmap_leaflet(leaflet_map))
   #
-  saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_Bbox_", Survey_year, "_", Survey_timeperiod, "_widget.html"))
+  if(Include_name == "N"){
+    saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_Bbox_", Survey_year, "_", Survey_timeperiod, "_widget.html"))
+  } else {
+    saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_Bbox_", Survey_year, "_", Survey_timeperiod, "_", B_name, "_widget.html"))
+  }
 }
 #
 #
