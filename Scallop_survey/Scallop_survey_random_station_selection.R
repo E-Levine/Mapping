@@ -71,8 +71,9 @@ Extra_stations <- anti_join(Selected, Target_stations) %>% group_by(Block) %>% #
 #
 ##Check number of extra stations select. If too many run "Extra_stations %>% arrange", if number is okay skip set.seed().
 nrow(Extra_stations) 
+nrow(Extra_stations)/5 #Chnage number to decide how many to keep. Chnage seq# and by=# in next line to desired number from this line.
 #
-Extra_stations <- Extra_stations %>% arrange(Block) %>% slice(seq(3, n(), by = 3))
+Extra_stations <- Extra_stations %>% arrange(Block) %>% slice(seq(5, n(), by = 5))
 #
 #Randomly select excess target stations to turn into Extra stations
 set.seed(seeding)
@@ -140,7 +141,7 @@ plot(FL_water[2])
 Possible_spdf <- st_as_sf(Possible, coords= c("Longitude", "Latitude"), crs = 4326)
 tm_shape(FL_state, bbox = Area_box)+ tm_polygons(fill = "gray")+
   tm_shape(FL_water)+ tm_polygons(col = "#CCFFFF")+
-  tm_shape(Possible_spdf)+ tm_dots(col = "red", size = 0.3)
+  tm_shape(Possible_spdf)+ tm_dots(col = "Block", size = 0.3)
 #
 #
 #Station file
@@ -157,42 +158,75 @@ Include_ramps <- c("Y")
 Mapping_output <- c("Both")
 #
 #Run next code chunk once mapping choices are updated. Code will create and save map outputs. 
-#Map of all stations
-(All_map <- tm_shape(FL_state, bbox = Area_box)+
-    tm_polygons(fill = "gray")+
-    tm_shape(FL_water)+
-    tm_polygons(col = "#CCFFFF")+
-    tm_shape(Survey_mapping)+
-    tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
-            alpha = 0.5)+
-    tm_text("StationNum", size = 0.6)+
-    tm_shape(Ramps)+
-    tm_dots(col = "black", size = 1, alpha = 0.7)+
-    tm_text("Ramp", size = 0.75, just = "bottom", ymod  = -1)+
-    tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
-              legend.frame = TRUE,
-              main.title = paste0(Site, " ", Year, " ", Season, "Season Survey"),
-              main.title.size = 1.25, main.title.position = "center")+
-    tm_graticules(lines = FALSE))
+if(Mapping_output == "All"){
+  #Map of all stations
+  (All_map <- tm_shape(FL_state, bbox = Area_box)+ tm_polygons(fill = "gray")+
+     tm_shape(FL_water)+ tm_polygons(col = "#CCFFFF")+
+     tm_shape(Survey_mapping)+
+      tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
+              alpha = 0.5)+
+     tm_text("StationNum", size = 0.6)+
+     {if(Include_ramps == "Y") tm_shape(Ramps)+ tm_dots(col = "black", size = 1, alpha = 0.7)+
+         tm_text("Ramp", size = 0.75, just = "left", ymod  = -0.2, xmod = 0.3)}+
+     tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
+               legend.frame = TRUE,
+               main.title = paste0(Site, " ", Year, " ", Season, " Survey"),
+               main.title.size = 1.25, main.title.position = "center")+
+     tm_graticules(lines = FALSE))
+  tmap_save(All_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_All.jpg", sep =""),
+            dpi = 1000)
+} else if(Mapping_output == "Target") {
+  #Map of target stations
+  (Target_map <- tm_shape(FL_state, bbox = Area_box)+ tm_polygons(fill = "gray")+
+      tm_shape(FL_water)+ tm_polygons(col = "#CCFFFF")+
+      tm_shape(Survey_mapping %>% filter(Type == "Target"))+
+      tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
+              alpha = 0.5)+
+      tm_text("StationNum", size = 0.6)+
+      {if(Include_ramps == "Y") tm_shape(Ramps)+ tm_dots(col = "black", size = 1, alpha = 0.7)+
+          tm_text("Ramp", size = 0.75, just = "left", ymod  = -0.2, xmod = 0.3)}+
+      tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
+                legend.frame = TRUE,
+                main.title = paste0(Site, " ", Year, " ", Season, " Survey"),
+                main.title.size = 1.25, main.title.position = "center")+
+      tm_graticules(lines = FALSE))
+  tmap_save(Target_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_Targets.jpg", sep =""),
+            dpi = 1000)
+} else if(Mapping_output == "Both"){
+  #Map of all stations
+  (All_map <- tm_shape(FL_state, bbox = Area_box)+ tm_polygons(fill = "gray")+
+     tm_shape(FL_water)+ tm_polygons(col = "#CCFFFF")+
+     tm_shape(Survey_mapping)+
+     tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
+             alpha = 0.5)+
+     tm_text("StationNum", size = 0.6)+
+     {if(Include_ramps == "Y") tm_shape(Ramps)+ tm_dots(col = "black", size = 1, alpha = 0.7)+
+         tm_text("Ramp", size = 0.75, just = "left", ymod  = -0.2, xmod = 0.3)}+
+     tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
+               legend.frame = TRUE,
+               main.title = paste0(Site, " ", Year, " ", Season, " Survey"),
+               main.title.size = 1.25, main.title.position = "center")+
+     tm_graticules(lines = FALSE))
+  tmap_save(All_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_All.jpg", sep =""),
+            dpi = 1000)
+  #
+  #Map of target stations
+  (Target_map <- tm_shape(FL_state, bbox = Area_box)+ tm_polygons(fill = "gray")+
+      tm_shape(FL_water)+ tm_polygons(col = "#CCFFFF")+
+      tm_shape(Survey_mapping %>% filter(Type == "Target"))+
+      tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
+              alpha = 0.5)+
+      tm_text("StationNum", size = 0.6)+
+      {if(Include_ramps == "Y") tm_shape(Ramps)+ tm_dots(col = "black", size = 1, alpha = 0.7)+
+          tm_text("Ramp", size = 0.75, just = "left", ymod  = -0.2, xmod = 0.3)}+
+      tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
+                legend.frame = TRUE,
+                main.title = paste0(Site, " ", Year, " ", Season, " Survey"),
+                main.title.size = 1.25, main.title.position = "center")+
+      tm_graticules(lines = FALSE))
+  tmap_save(Target_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_Targets.jpg", sep =""),
+            dpi = 1000)
+} else {print("Incorrect mapping choice specified. Please choose among All, Target, or Both")}
 #
-tmap_save(All_map, file = paste0("../",Year,"/",Year,"_",Site,"_",Season,"Season_All Stations.jpg"), dpi = 1000)
 #
-#Map of target stations
-(Target_map <- tm_shape(FL_state, bbox = Area_box)+
-    tm_polygons(fill = "gray")+
-    tm_shape(FL_water)+
-    tm_polygons(col = "#CCFFFF")+
-    tm_shape(Survey_mapping %>% filter(Type == "Target"))+
-    tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
-            alpha = 0.5)+
-    tm_text("StationNum", size = 0.6)+
-    tm_shape(Ramps)+
-    tm_dots(col = "black", size = 1, alpha = 0.7)+
-    tm_text("Ramp", size = 0.75, just = "bottom", ymod  = -1)+
-    tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
-              legend.frame = TRUE,
-              main.title = paste0(Site, " ", Year, " ", Season, "Season Target Stations"),
-              main.title.size = 1.15, main.title.position = "center")+
-    tm_graticules(lines = FALSE))
 #
-tmap_save(Target_map, file = paste0("../",Year,"/",Year,"_",Site,"_",Season,"Season_Target Stations.jpg"), dpi = 1000)
