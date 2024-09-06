@@ -10,37 +10,40 @@ rm(list=ls(all=TRUE)) # clears out environment
 #
 #Load packages to work with. Install missing packages as needed.
 if (!require("pacman")) {install.packages("pacman")} #- MAKE SURE PACMAN IS INSTALLED AND RUNNING!
-pacman::p_load(plyr, tidyverse, xtable, 
-               sf, raster, terra, sp, rgdal,
-               leaflet, tmap, DescTools, tmaptools,
-               sampling, readxl,
+pacman::p_load(readxl, plyr, tidyverse, #xtable, 
+               sf, raster, marmap, #terra, sp, rgdal,
+               leaflet, tmap, DescTools, tmaptools, tigris,
+               sampling, 
                install = TRUE) 
 
 #library(ggmap)
-options("sp_evolution_status"=2)
+#options("sp_evolution_status"=2)
 #
 #
 ####Load File and set working info####
 #
 ##***Set Site - 2 letter code
-Site <- c("AN")
+Site <- c("PA")
 ##***Set year of survey - 4 digits
 Year <- c("2024")
 ##***Set "PreSeason" or "PostSeason"
 Season <- c("PostSeason")
-#
-#
-#Excel sheet of all possible stations assigned into blocks/regions
-Possible <- read_xlsx("Data/Survey_Grid_coordinates_by_block.xlsx", sheet = 1, .name_repair = "universal") %>%
-  filter(Location == Site)
-str(Possible)
-#
 #
 #Change seed number between seasons/regions - can leave seed the same within same season to replicate output
 #Add seed number used to line below to avoid duplication.
 #Seeds used: 4321-HO2022Pre, 5421-HO2022Post, 5321-AN2024Post
 seeding <- c("5321")
 #
+#Excel sheet of all possible stations assigned into blocks/regions
+Possible <- read_xlsx("Data/Survey_Grid_coordinates.xlsx", sheet = 1, .name_repair = "universal") %>%
+  filter(Location == Site) %>% relocate(Longitude, .before = Latitude)
+str(Possible)
+#
+#
+##County information
+Counties <- read.csv("Data/Counties_Sites_FIPS.csv", na.strings = c("", " ", "Z", "NA"))
+head(Counties)
+FIPS <- as.list((Counties %>% filter(Site_Code == Site))[2])
 #
 ###Station selection by total number of stations####
 #
@@ -66,12 +69,17 @@ Extra_stations <- anti_join(Selected, Target_stations) %>% group_by(Block) %>% #
   ungroup() %>% mutate(Type = "Extra") #Assign as Extra
 #
 #
+##Check number of extra stations select. If too many run "Extra_stations %>% arrange", if number is okay skip set.seed().
+nrow(Extra_stations) 
+#
+Extra_stations <- Extra_stations %>% arrange(Block) %>% slice(seq(3, n(), by = 3))
+#
 #Randomly select excess target stations to turn into Extra stations
 set.seed(seeding)
 Excess <- sample(nrow(Target_stations), nrow(Target_stations) - Num_stations)
 head(Add_Extra <- Target_stations[Excess,] %>% mutate(Type = "Extra"),4)
 #
-Final_Target <- if(nrow(Target_stations) - Num_stations == 0){Target_stations} else {Target_stations[-Excess,]}
+Final_Target <- if(length(Excess) == 0){Target_stations} else {Target_stations[-Excess,]}
 #
 #
 #Combine final Target stations and all Extra stations into data frame
@@ -108,3 +116,83 @@ write.csv(Survey_Stations, file = paste("Output/",Year,"_",Site,"_",Season,"_Sta
 #
 #
 #
+
+####Map stations####
+#
+##Outputs map of all stations, map of target stations
+#
+##Map area with buffer - W, S, E, N
+Area_box <- bb(c(min(Possible$Longitude) - 0.015,  min(Possible$Latitude) - 0.015,
+                 max(Possible$Longitude) + 0.015, max(Possible$Latitude) + 0.015))
+#
+#Get state boundaries and water for FL
+FL_state <- states(year = as.numeric(Year)-1) %>% filter(STUSPS == "FL")
+plot(FL_state[1])
+#
+for(i in unique(FIPS)){
+  Code <- paste(i)
+  t <- area_water("FL", Code, year = as.numeric(Year)-1)
+  FL_water <- rbind(t)
+}
+plot(FL_water[2])
+#
+#Create map of whole possible survey area to view/check data loaded
+Possible_spdf <- st_as_sf(Possible, coords= c("Longitude", "Latitude"), crs = 4326)
+tm_shape(FL_state, bbox = Area_box)+ tm_polygons(fill = "gray")+
+  tm_shape(FL_water)+ tm_polygons(col = "#CCFFFF")+
+  tm_shape(Possible_spdf)+ tm_dots(col = "red", size = 0.3)
+#
+#
+#Station file
+Survey_mapping <- st_as_sf(Survey_Stations, coords = c("Longitude", "Latitude"), crs = 4326)
+#DF of ramps and rough channel entrances
+Ramps_df <- read_xlsx("Data/Boat_ramp_locations.xlsx", sheet = 1, .name_repair = "universal") 
+Ramps <- Ramps_df %>% st_as_sf(coords = c("Long", "Lat"), crs = 4326)
+#
+#
+##Mapping choices
+##***Include ramps on map? Y/N
+Include_ramps <- c("Y")
+##***Map of all stations, just target, or one of each ("All", "Target", "Both")
+Mapping_output <- c("Both")
+#
+#Run next code chunk once mapping choices are updated. Code will create and save map outputs. 
+#Map of all stations
+(All_map <- tm_shape(FL_state, bbox = Area_box)+
+    tm_polygons(fill = "gray")+
+    tm_shape(FL_water)+
+    tm_polygons(col = "#CCFFFF")+
+    tm_shape(Survey_mapping)+
+    tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
+            alpha = 0.5)+
+    tm_text("StationNum", size = 0.6)+
+    tm_shape(Ramps)+
+    tm_dots(col = "black", size = 1, alpha = 0.7)+
+    tm_text("Ramp", size = 0.75, just = "bottom", ymod  = -1)+
+    tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
+              legend.frame = TRUE,
+              main.title = paste0(Site, " ", Year, " ", Season, "Season Survey"),
+              main.title.size = 1.25, main.title.position = "center")+
+    tm_graticules(lines = FALSE))
+#
+tmap_save(All_map, file = paste0("../",Year,"/",Year,"_",Site,"_",Season,"Season_All Stations.jpg"), dpi = 1000)
+#
+#Map of target stations
+(Target_map <- tm_shape(FL_state, bbox = Area_box)+
+    tm_polygons(fill = "gray")+
+    tm_shape(FL_water)+
+    tm_polygons(col = "#CCFFFF")+
+    tm_shape(Survey_mapping %>% filter(Type == "Target"))+
+    tm_dots(col = "Type", size = 1, palette = c(Target = "#FF9933", Extra = "#009966"),
+            alpha = 0.5)+
+    tm_text("StationNum", size = 0.6)+
+    tm_shape(Ramps)+
+    tm_dots(col = "black", size = 1, alpha = 0.7)+
+    tm_text("Ramp", size = 0.75, just = "bottom", ymod  = -1)+
+    tm_layout(legend.position = c("right", "bottom"), legend.bg.color = "white", legend.bg.alpha = 0.8,
+              legend.frame = TRUE,
+              main.title = paste0(Site, " ", Year, " ", Season, "Season Target Stations"),
+              main.title.size = 1.15, main.title.position = "center")+
+    tm_graticules(lines = FALSE))
+#
+tmap_save(Target_map, file = paste0("../",Year,"/",Year,"_",Site,"_",Season,"Season_Target Stations.jpg"), dpi = 1000)
