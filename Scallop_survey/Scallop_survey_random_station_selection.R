@@ -11,19 +11,16 @@ rm(list=ls(all=TRUE)) # clears out environment
 #Load packages to work with. Install missing packages as needed.
 if (!require("pacman")) {install.packages("pacman")} #- MAKE SURE PACMAN IS INSTALLED AND RUNNING!
 pacman::p_load(readxl, plyr, tidyverse, #xtable, 
-               sf, raster, marmap, #terra, sp, rgdal,
-               leaflet, tmap, DescTools, tmaptools, tigris,
-               sampling, 
-               install = TRUE) 
-
-#library(ggmap)
-#options("sp_evolution_status"=2)
+               raster, terra, sp, sf,
+               leaflet, tmap, tmaptools, tigris,
+              install = TRUE) 
+#
 #
 #
 ####Load File and set working info####
 #
 ##***Set Site - 2 letter code
-Site <- c("PA")
+Site <- c("HO")
 ##***Set year of survey - 4 digits
 Year <- c("2024")
 ##***Set "PreSeason" or "PostSeason"
@@ -31,8 +28,8 @@ Season <- c("PostSeason")
 #
 #Change seed number between seasons/regions - can leave seed the same within same season to replicate output
 #Add seed number used to line below to avoid duplication.
-#Seeds used: 4321-HO2022Pre, 5421-HO2022Post, 5321-AN2024Post
-seeding <- c("5321")
+#Seeds used: 4321-HO2022Pre, 5421-HO2022Post, 5321-AN2024Post, 5521-HO2024Post
+seeding <- c("5521")
 #
 #Excel sheet of all possible stations assigned into blocks/regions
 Possible <- read_xlsx("Data/Survey_Grid_coordinates.xlsx", sheet = 1, .name_repair = "universal") %>%
@@ -48,7 +45,7 @@ FIPS <- as.list((Counties %>% filter(Site_Code == Site))[2])
 ###Station selection by total number of stations####
 #
 ##***Input total number of stations needed
-Num_stations <- 36
+Num_stations <- 45
 ##***Sets minimum number of extra stations per block (Num_extras)
 Num_extras <- 1
 #
@@ -71,9 +68,9 @@ Extra_stations <- anti_join(Selected, Target_stations) %>% group_by(Block) %>% #
 #
 ##Check number of extra stations select. If too many run "Extra_stations %>% arrange", if number is okay skip set.seed().
 nrow(Extra_stations) 
-nrow(Extra_stations)/5 #Chnage number to decide how many to keep. Chnage seq# and by=# in next line to desired number from this line.
+nrow(Extra_stations)/3 #Change number to decide how many to keep. Change seq# and by=# in next line to desired number from this line.
 #
-Extra_stations <- Extra_stations %>% arrange(Block) %>% slice(seq(5, n(), by = 5))
+Extra_stations <- Extra_stations %>% arrange(Block) %>% slice(seq(3, n(), by = 3))
 #
 #Randomly select excess target stations to turn into Extra stations
 set.seed(seeding)
@@ -173,6 +170,7 @@ if(Mapping_output == "All"){
                main.title = paste0(Site, " ", Year, " ", Season, " Survey"),
                main.title.size = 1.25, main.title.position = "center")+
      tm_graticules(lines = FALSE))
+  All_map
   tmap_save(All_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_All.jpg", sep =""),
             dpi = 1000)
 } else if(Mapping_output == "Target") {
@@ -190,6 +188,7 @@ if(Mapping_output == "All"){
                 main.title = paste0(Site, " ", Year, " ", Season, " Survey"),
                 main.title.size = 1.25, main.title.position = "center")+
       tm_graticules(lines = FALSE))
+  Target_map
   tmap_save(Target_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_Targets.jpg", sep =""),
             dpi = 1000)
 } else if(Mapping_output == "Both"){
@@ -209,6 +208,7 @@ if(Mapping_output == "All"){
      tm_graticules(lines = FALSE))
   tmap_save(All_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_All.jpg", sep =""),
             dpi = 1000)
+  All_map
   #
   #Map of target stations
   (Target_map <- tm_shape(FL_state, bbox = Area_box)+ tm_polygons(fill = "gray")+
@@ -226,6 +226,7 @@ if(Mapping_output == "All"){
       tm_graticules(lines = FALSE))
   tmap_save(Target_map, file = paste0("Output/", Year, "_", Site, "_", Season, "_Targets.jpg", sep =""),
             dpi = 1000)
+  Target_map
 } else {print("Incorrect mapping choice specified. Please choose among All, Target, or Both")}
 #
 #
