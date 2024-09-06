@@ -44,13 +44,14 @@ seeding <- c("5321")
 #
 ###Station selection by total number of stations####
 #
-##***Input number of stations needed
+##***Input total number of stations needed
 Num_stations <- 36
+##***Sets minimum number of extra stations per block (Num_extras)
+Num_extras <- 1
 #
 ##Code to determine number of stations needed per block/region for even distribution - rounded up. 
 Num_select <- ceiling(Num_stations/length(unique(Possible$Block)))
-##***Sets minimum number of extra stations per block (Num_extras)
-Num_extras <- 1
+#
 #
 ##Randomly select required number of stations from each block - use set.seed to replicate stations already chosen.
 set.seed(seeding)
@@ -89,22 +90,21 @@ write.csv(Survey_Stations, file = paste("Output/",Year,"_",Site,"_",Season,"_Sta
 #
 ###Station selection by number per block####
 #
-# Randomly select 2 stations from each block
-HE_survey_rand_post <- HE_survey %>% 
-  group_by(Block) %>% 
-  slice_sample(n=2)
-
-# Create vector of "Extra" and "Target" assignments and add to df
-Target_Extra <- rep(c("Target","Extra"), times = 26)
-
-HE_survey_rand_post <- cbind(HE_survey_rand_post, Target_Extra)
-names(HE_survey_rand_post)[7] = "Target_Extra"
-
-write.csv(HE_survey_rand_post,"HE_survey_postseason.csv") # save an object to csv
-
-
-# Sample strata unevenly
-HE_survey_rand2 <- strata(HE_survey,"Block",size = c(2,3,4), method = "srswor")
+##***Input number of stations needed per block
+Num_block <- 2
+#
+#Randomly select the desired number of stations from each block
+set.seed(seeding)
+Selected <- Possible %>% group_by(Block) %>% slice_sample(n = Num_block)
+#
+Survey_Stations <- cbind(Selected, rep(c("Target","Extra"), times = (nrow(Selected)/2)))
+names(Survey_Stations)[7] = "Type"
+#
+#Double check for duplicates - want all FALSE
+duplicated(Survey_Stations$StationID)
+#
+write.csv(Survey_Stations, file = paste("Output/",Year,"_",Site,"_",Season,"_Stations.csv", sep = ""), row.names = F)
+#
 #
 #
 #
