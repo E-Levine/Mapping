@@ -1,0 +1,330 @@
+####Template for assigning data layers to microgid cells.
+####Update the Region, Estuary/Site Code, and StateGrids in the "Specifications" Section 
+####Save as new working file then delete lines 1-4.
+#
+####Regional Florida MicroGrid Metadata Updates
+#
+#
+#Use Alt+O to collapse all sections, Alt+Shift+O to expand all sections
+#Each section builds upon the previous to add data to the microgrids:
+#Data order: Estuary and Sections, Oysters in FL, SHA classifications, Seagrass area
+#
+#
+#.rs.restartR() #Restarts session (good if rerunning after working with other files)
+#graphics.off()  # turns off any plots from previous work session
+#rm(list=ls(all=TRUE)) # clears out environment 
+#
+#Load require packages (should install missing packages as necessary) - MAKE SURE PACMAN IS INSTALLED AND RUNNING!
+if (!require("pacman")) {install.packages("pacman")}
+pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
+               openxlsx, magicfor,
+               sf, raster, terra,
+               leaflet, tmap, 
+               install = TRUE) #Mapping and figures
+#
+####Specifications####
+#
+#Assign Region, Estuary Code, and StateGrid(s). Only assign the Alternate state grid if required.
+Region <- c("SouthEast") #SouthEast, SouthWest, NorthEast, NorthWest, NorthCentral
+Site_Code <- c("SL") #Two-letter Site code
+State_Grid <- c("H4")
+#Alt_State_Grid <- c("H5") 
+#
+###Throughout this file, a primary State_Grid is used with the option of an alternate or additional StateGrid.
+###If an estuary falls completely within 1 StateGrid, skip lines for the "Alt" as instructed in each section.
+#
+##Is an alternant/secondary StateGrid required? YES or NO
+Alt_StateGrid <- c("NO")
+#
+#Specify if data should be included ("YES") or not included ("NO")
+Florida_Oysters <- c("YES")
+Florida_Seagrass <- c("YES")
+Florida_Waterways <- c("YES")
+Florida_SHA <- c("NO")
+Depth <- c("YES")
+Salinity <- c("YES")
+Temperature <- c("YES")
+#
+#
+####Reference Tables####
+#Estuary names and SHA codes
+(Estuary_long <- read.csv("../Reference Files/Estuary_SiteCodes.csv", na.string = c("Z", "", "NA", " ")))
+(SHA_Codes <- read.csv("../Reference Files/SHA_Class_Codes.csv", na.string = c("Z", "", "NA", " ")) %>% 
+    mutate(Subsection = factor(Subsection, unique(Subsection)))) #Set SHA priority
+(Section_Order <- read.csv("../Reference Files/Section_Orders.csv", na.string = c("Z", "", "NA", " ")) %>%
+    filter(Site == Site_Code) %>% arrange(Order) %>% #Limit to desired Site and order Sections
+    mutate(Section = factor(Section, unique(Section)))) #Set Section priority
+#
+#
+#
+#
+####Parameter Scoring####
+#
+##Oysters
+Oyster_curve <- readWorkbook("../Reference Files/Parameter_Scoring.xlsx", sheet = 'Oysters', detectDates = TRUE) %>% arrange(desc(O1_SIV))
+Oyster_curve_m <- as.matrix(Oyster_curve)
+ggplot()+
+  geom_line(data = Oyster_curve, aes(O1_oy, O1_SIV, group = 1), color = "red", linetype = 1)+
+  scale_y_continuous(limits = c(0,1.01), expand = c(0,0))+
+  scale_x_discrete(expand = c(0,0))+
+  xlab("Oysters") + ylab("SI Score")+
+  theme_classic()
+#
+##Seagrass
+Seagrass_curve <- readWorkbook("../Reference Files/Parameter_Scoring.xlsx", sheet = 'Seagrass', detectDates = TRUE) %>% arrange(desc(SG1_SIV))
+Seagrass_curve_m <- as.matrix(Seagrass_curve)
+ggplot()+
+  geom_line(data = Seagrass_curve, aes(SG1_grass, SG1_SIV, group = 1), color = "red", linetype = 1)+
+  scale_y_continuous(limits = c(0,1.01), expand = c(0,0))+
+  scale_x_discrete(expand = c(0,0))+
+  xlab("Seagrass") + ylab("SI Score")+
+  theme_classic()
+#
+##Waterways
+Waterways_curve <- readWorkbook("../Reference Files/Parameter_Scoring.xlsx", sheet = 'Waterways', detectDates = TRUE) %>% arrange(desc(W1_SIV))
+Waterways_curve_m <- as.matrix(Waterways_curve)
+ggplot()+
+  geom_line(data = Waterways_curve, aes(W1_ways, W1_SIV, group = 1), color = "red", linetype = 1)+
+  scale_y_continuous(limits = c(0,1.01), expand = c(0,0))+
+  scale_x_discrete(expand = c(0,0))+
+  xlab("Waterways") + ylab("SI Score")+
+  theme_classic()
+#
+#
+#
+#
+####Load grid cells of interest####
+#
+##MicroGrid - skip "Alt[...]" lines if no Alternate StateGrid
+#Load StateGrid, check data, view map  to confirm area
+if(Alt_StateGrid == "NO"){
+  MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",State_Grid,"_clip.shp"))
+  plot(MicroGrid$geometry)
+  head(MicroGrid)
+}else if(Alt_StateGrid == "YES"){
+  MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",State_Grid,"_clip.shp"))
+  plot(MicroGrid$geometry)
+  head(MicroGrid)
+  
+  Alt_MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",Alt_State_Grid,"_clip.shp"))
+  plot(Alt_MicroGrid$geometry) #Check alternate
+  head(Alt_MicroGrid)
+}
+#
+#
+##Estuary area and Sections - change to whole estuary KML layer name and section names
+#Copy and add Sections as needed for additional sections, changing the number sequentially
+Estuary_area <- st_read(paste0("../Base Layers/Site_Region_Areas/",Site_Code,".kml"))
+#
+plot(Estuary_area[2])
+head(Estuary_area)
+#
+Section1 <- st_read("../Base Layers/Site_Region_Areas/SL-Central.kml") 
+plot(Section1[2])
+#
+Section2 <- st_read("../Base Layers/Site_Region_Areas/SL-North.kml") 
+plot(Section2[2])
+#
+Section3 <- st_read("../Base Layers/Site_Region_Areas/SL-South.kml") 
+plot(Section3[2])
+#
+#
+##Limit to Estuary's microgrid cells - save working df to keep original area grids intact
+if(Alt_StateGrid == "NO"){
+  Site_Grid <- MicroGrid[lengths(st_intersects(MicroGrid, Estuary_area))> 0,]  %>% dplyr::select(-Estuary)
+  plot(Site_Grid$geometry)
+  
+  Site_Grid_working <- Site_Grid
+}else if(Alt_StateGrid == "YES"){
+  Site_Grid <- MicroGrid[lengths(st_intersects(MicroGrid, Estuary_area))> 0,]  %>% dplyr::select(-Estuary)
+  plot(Site_Grid$geometry)
+  
+  Site_Grid_alt <- Alt_MicroGrid[lengths(st_intersects(Alt_MicroGrid, Estuary_area))> 0,]  %>% dplyr::select(-Estuary)
+  plot(Site_Grid_alt$geometry)
+  
+  Site_Grid_alt_working <- Site_Grid_alt
+}
+#
+#
+#
+#
+####Add Estuary and Section Information to grid cells####
+#
+#Load sections - add code for each section to load
+Section1 <- st_read("../Base Layers/Site_Region_Areas/SL-Central.kml") 
+plot(Section1[2])
+#
+Section2 <- st_read("../Base Layers/Site_Region_Areas/SL-North.kml") 
+plot(Section2[2])
+#
+Section3 <- st_read("../Base Layers/Site_Region_Areas/SL-South.kml") 
+plot(Section3[2])
+#
+#
+#Combine and remove duplicates based on priority ranking - add tmp# for each section loaded 
+tmp1 <- Site_Grid_working[lengths(st_intersects(Site_Grid_working, Section1)) > 0,] %>% #Limit to section area
+  mutate(Site = Site_Code, Section = "C") %>%  left_join(Estuary_long, by = "Site") #Add Site, Section, Estuary info
+tmp2 <- Site_Grid_working[lengths(st_intersects(Site_Grid_working, Section2)) > 0,] %>% 
+  mutate(Site = Site_Code, Section = "N") %>% left_join(Estuary_long, by = "Site")
+tmp3 <- Site_Grid_working[lengths(st_intersects(Site_Grid_working, Section3)) > 0,] %>% 
+  mutate(Site = Site_Code, Section = "S") %>% left_join(Estuary_long, by = "Site")
+#
+#Combine and remove duplicates based on priority ranking - add tmp# in first line of code for all sections as needed
+(Section_cells_geo <-  rbind(tmp1, tmp2, tmp3) %>% #Join all sections then reorder Section values
+    mutate(Section = factor(Section, levels = unique(Section_Order$Section[order(Section_Order$Order)]), ordered = TRUE)) %>%
+    arrange(Section) %>% group_by(MGID) %>%  #Arrange df in order by ID and keep highest ranked Section
+    slice(1)) 
+#
+Section_cells <- Section_cells_geo %>% st_set_geometry(NULL) #Remove geometry
+#
+head(Section_cells) #Check data
+#
+#Plot Estuary area against Sections to confirm all are represented
+summary(Site_Grid_working$MGID %in% Section_cells$MGID) #Check IDs match, FALSE = cells with no designation
+tmap_arrange(
+  tm_shape(Site_Grid) + tm_polygons(col = "Section"),
+  tm_shape(Section_cells_geo) + tm_polygons(col = "Section"),
+  nrow = 1, ncol = 2)
+#
+#Add Section designations to working df
+Site_Grid_working_1 <- inner_join(Site_Grid_working %>% dplyr::select(-Site, -Section), #Remove columns being edited from working df
+                                  Section_cells %>% dplyr::select(MGID, Site, Section), by = "MGID") #Add data by ID
+#
+head(Site_Grid_working_1)
+#
+##Plot to confirm join was correct
+tm_shape(Site_Grid_working_1) + tm_polygons(col ="Section") + tm_layout(frame = FALSE)
+#
+#Merge with working file
+Site_Grid_All <- Site_Grid_working_1
+#
+head(Site_Grid_All)
+#
+tm_shape(Site_Grid_All) + tm_polygons(col ="Section")+ tm_layout(frame = FALSE)
+#Name if saving map: Site_MicroGrid_Sections
+#
+#
+#
+#
+#
+####Florida Oysters####
+#
+#Load shapefile and crop to estuary area
+if(Florida_Oysters == "YES" & Alt_StateGrid == "NO"){
+  FL_Oysters_all <- crop(as(st_read("../Base Layers/Oyster Beds in Florida/Oyster_Beds_in_Florida.shp"), "Spatial"),
+                         extent(Site_Grid))
+  FL_Oysters <- st_as_sf(crop(FL_Oysters_all, extent(Site_Grid)))
+} else if(Florida_Oysters == "YES" & Alt_StateGrid == "YES"){
+  FL_Oysters_all <- crop(as(st_read("../Base Layers/Oyster Beds in Florida/Oyster_Beds_in_Florida.shp"), "Spatial"),
+                         extent(merge(extent(Site_Grid), extent(Site_Grid_alt))))
+  FL_Oysters <- st_as_sf(crop(FL_Oysters_all, extent(merge(extent(Site_Grid), extent(Site_Grid_alt)))))
+} else if(Florida_Oysters == "NO"){
+  FL_Oysters_all <- "Florida Oysters not included in model."
+  FL_Oysters <- "Florida Oysters not included in model."
+}
+#
+#Check data
+plot(FL_Oysters_all); plot(FL_Oysters[4])
+head(FL_Oysters_all)
+st_crs(FL_Oysters_all)
+#
+##Score parameter
+if(Florida_Oysters == "YES"){
+  #Scale values using HSI S1 curve
+  FL_Oysters_temp <- FL_Oysters %>% mutate(COMMENTS = case_when(is.na(COMMENTS) ~ "None", TRUE ~ COMMENTS))
+  magic_for(print)
+  for (i in FL_Oysters_temp$COMMENTS){
+    O1_SIV <- SIcalc(Oyster_curve_m[,1:2], c(i)) 
+    print(O1_SIV)
+    }
+  temp_o1 <- magic_result_as_dataframe()
+  FL_Oysters <- cbind(FL_Oysters, temp_o1)
+  rm(FL_Oysters_temp)
+  head(FL_Oysters)
+  #Add scores to MGIDs
+  Grid_Oysters_geo <- st_intersection(Site_Grid_working, FL_Oysters) %>% dplyr::select(MGID, O1_SIV) %>% st_make_valid()
+  #Add designations to working df
+  Site_Grid_working_2 <- full_join(Site_Grid_working_1 , Grid_Oysters_geo %>% st_set_geometry(NULL), by = "MGID") %>% #Add data by ID
+    mutate(O1_SIV = as.numeric(O1_SIV))
+  Site_Grid_All <- Site_Grid_working_2
+  } else {
+    (FL_Oysters <- "Florida Oysters not included in model.")
+    Site_Grid_working_2 <- Site_Grid_working_1
+    Site_Grid_All <- Site_Grid_working_2
+  }
+#
+#
+#
+#Plot Estuary area against Oyster presence to confirm areas similar
+summary(Site_Grid_working_1$MGID %in% Grid_Oysters_geo$MGID) #Check IDs match TRUE = number of cells with depth measurement
+tmap_options(check.and.fix = TRUE)
+tmap_arrange(
+  tm_shape(Site_Grid_working_1) + tm_polygons(col = "Section"),
+  tm_shape(Grid_Oysters_geo) + tm_polygons(col = "O1_SIV", palette = c("BrBG")),
+  nrow = 1, ncol = 2)
+tm_shape(Site_Grid_All) + tm_polygons(col ="O1_SIV")+ tm_layout(frame = FALSE)
+#Name for saving: Site_MicroGrid_Oysters
+#
+#
+#
+#
+####Florida Seagrass####
+#
+
+#Load shapefile and crop to estuary area
+if(Florida_Seagrass == "YES" & Alt_StateGrid == "NO"){
+  FL_Seagrass_all <- crop(as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial"),
+                         extent(Site_Grid))
+  FL_Seagrass <- st_as_sf(crop(FL_Seagrass_all, extent(Site_Grid)))
+} else if(Florida_Seagrass == "YES" & Alt_StateGrid == "YES"){
+  FL_Seagrass_all <- crop(as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial"),
+                         extent(merge(extent(Site_Grid), extent(Site_Grid_alt))))
+  FL_Seagrass <- st_as_sf(crop(FL_Seagrass_all, extent(merge(extent(Site_Grid), extent(Site_Grid_alt)))))
+} else if(Florida_Seagrass == "NO"){
+  FL_Seagrass_all <- "Florida seagrass not included in model."
+  FL_Seagrass <- "Florida seagrass not included in model."
+}
+#
+#Check data
+plot(FL_Seagrass_all); plot(FL_Seagrass[4])
+head(FL_Seagrass_all)
+st_crs(FL_Seagrass_all)
+#
+##Score parameter
+if(Florida_Seagrass == "YES"){
+  #Scale values using HSI S1 curve
+  magic_for(print)
+  for (i in FL_Seagrass$SEAGRASS){
+    SG1_SIV <- SIcalc(Seagrass_curve_m[,1:2], c(i)) 
+    print(SG1_SIV)
+  }
+  temp_sg1 <- magic_result_as_dataframe()
+  FL_Seagrass <- cbind(FL_Seagrass, temp_sg1)
+  head(FL_Seagrass)
+  #Add scores to MGIDs
+  Grid_Seagrass_geo <- st_intersection(Site_Grid_working, FL_Seagrass) %>% dplyr::select(MGID, SG1_SIV) %>% st_make_valid()
+  #Add designations to working df
+  Site_Grid_working_3 <- full_join(Site_Grid_working_2 , Grid_Seagrass_geo %>% st_set_geometry(NULL), by = "MGID") %>% #Add data by ID
+    mutate(SG1_SIV = as.numeric(SG1_SIV)) %>% mutate(SG1_SIV = case_when(is.na(SG1_SIV) ~ 1, TRUE ~ SG1_SIV))
+  Site_Grid_All <- Site_Grid_working_3
+} else {
+  (FL_Seagrass <- "Florida Seagrass not included in model.")
+  Site_Grid_working_3 <- Site_Grid_working_2
+  Site_Grid_All <- Site_Grid_working_3
+}
+#
+#
+#
+#Plot Estuary area against seagrass presence to confirm areas similar
+summary(Site_Grid_working_2$MGID %in% Grid_Seagrass_geo$MGID) #Check IDs match TRUE = number of cells with depth measurement
+tmap_options(check.and.fix = TRUE)
+tmap_arrange(
+  tm_shape(Site_Grid_working_3) + tm_polygons(col = "Section"),
+  tm_shape(Grid_Seagrass_geo) + tm_polygons(col = "SG1_SIV", palette = c("BrBG")),
+  nrow = 1, ncol = 2)
+tm_shape(Site_Grid_All) + tm_polygons(col ="SG1_SIV")+ tm_layout(frame = FALSE)
+#Name for saving: Site_MicroGrid_Seagrass
+#
+#
+#
+#
