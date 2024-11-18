@@ -1,5 +1,6 @@
 # Mapping
 Code for various mapping projects using R.
+When using this repo, insure all large raw data files are stored in a folder named 'Data'. 'Data' folders will not sync, but any 'Output', 'Summary', or other folders will.
 
 SURVEY <br>
 *Templates for <br> 
@@ -15,3 +16,4 @@ HSI
 
 **Updates**
  6/5/24 - #4 Updated for proper selection/exclusion of monitoring stations.
+ 11/18/24 - gitignore 'Data' folders.
