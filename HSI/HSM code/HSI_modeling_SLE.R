@@ -25,3 +25,8 @@ pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
 Site_Code <- c("SL") #two-letter site code
 State_Grid <- c("H4")
 Alt_State_Grid <- c(NA) #Two-letter StateGrid ID, enter NA if no secondary StateGrid needed
+#
+#
+####Load files####
+#
+PicoGrid <- 
