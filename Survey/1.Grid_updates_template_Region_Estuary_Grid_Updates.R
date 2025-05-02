@@ -1,4 +1,4 @@
-####Template for assigning data layers to microgid cells.
+####Template for assigning data layers/information to microgid cells.
 ####Update the Region, Estuary/Site Code, and StateGrids in lines 25-28 (lines 21-24 after removing template header). 
 ####Delete lines 1-4 then save as new working file.
 #
@@ -7,7 +7,7 @@
 #
 #Use Alt+O to collapse all sections, Alt+Shift+O to expand all sections
 #Each section builds upon the previous to add data to the microgrids:
-#Data order: Estuary and Sections, Oysters in FL, SHA classifications, Seagrass area
+#Data order: Estuary and Sections, Oysters in FL, SHA classifications, Seagrass area, and Reef names and zones
 #
 #
 #.rs.restartR() #Restarts session (good if rerunning after working with other files)
@@ -18,7 +18,7 @@
 if (!require("pacman")) {install.packages("pacman")} #- MAKE SURE PACMAN IS INSTALLED AND RUNNING!
 pacman::p_load(plyr, tidyverse, #Df manipulation, basic summary
                sf, raster, terra,
-               leaflet, tmap, 
+               leaflet, tmap, readxl,
                install = TRUE) #Mapping and figures
 #
 #Assign Region, Estuary Code, and StateGrid(s). Only assign the Alternate state grid if required.
@@ -35,7 +35,7 @@ State_Grid <- c("H4")
 #
 ##MicroGrid - skip lines 34, 40, and 41 if no Alt.
 MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",State_Grid,"_clip.shp"))
-Alt_MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",Alt_State_Grid,"_clip.shp"))
+Alt_MicroGrid <- st_read(paste0("../Base Layers/MicroGrids/Florida_MicroGrid_WGS84_",Alt_State_Grid,"_clip.shp")) %>% rename(Bathy_m = Bathy_M)
 #
 #Check data, view map  to confirm area
 plot(MicroGrid$geometry)
@@ -794,6 +794,126 @@ tm_shape(Site_Grid_All) + tm_polygons(col ="Seagrass")+ tm_layout(frame = FALSE)
 #Name for saving: LX_MicroGrid_Seagrass
 #
 #
+####6. Assign reef Zones and ShoreZones to Microgrid - can use with new data or add to existing data####
+#
+(Zone_Order <- read_excel("../Reference Files/Zone_Orders.xlsx", sheet = "Sheet1", skip = 0, col_names = TRUE, na = c("", "Z", "NA", " "), trim_ws = TRUE, .name_repair = "universal") %>% filter(Site == Site_Code) %>% arrange(Order) %>% mutate(Zone = factor(Zone, unique(Zone)), ShoreZone = factor(ShoreZone, unique(ShoreZone))))
+#
+#Confirm all reef Zones and ShoreZone zones are listed in the following. If any are missing, update the Zone_Orders Excel sheet as needed.
+(Reef_zones <- levels(as.factor(Zone_Order$Zone_Name)))
+(ShoreZone_zones <- levels(Zone_Order$ShoreZone))
+#If lists created above are correct, continue with code. Can use next line to drop levels.
+#Reef_zones <- Reef_zones[-c(2,3)]
+for (i in seq_along(unique(Reef_zones))) {
+  for(j in seq_along(ShoreZone_zones)){
+    temp <- st_read(paste0("../Base Layers/Site_Region_areas/",Site_Code, "-", Reef_zones[i],"-", ShoreZone_zones[j], ".kml"))
+    assign(paste0(Site_Code, "_",Reef_zones[i], "_", ShoreZone_zones[j]), temp)
+  }
+  rm(temp)
+}
+#Assign Zone and ShoreZone information and remove duplicates based on priority ranking 
+ReefZoning <- vector("list", length(unique(ShoreZone_zones)))
+for(i in seq_along(Reef_zones)){
+  ReefZoning[[i]] <- vector("list", length(ShoreZone_zones))
+  for(j in seq_along(ShoreZone_zones)){
+    zone_name <- paste0(Site_Code, "_", Reef_zones[i],"_", ShoreZone_zones[j])
+    ReefZoning[[j]] <- Site_Grid_working[lengths(st_intersects(Site_Grid_working, get(zone_name))) > 0, ] %>% # Limit to section area
+      mutate(Zone = (Zone_Order %>% filter(Zone_Name == Reef_zones[i]) %>% pull(Zone) %>% unique()),
+             ShoreZone = ShoreZone_zones[j]) %>%  left_join(Estuary_long, by = "Site") # Add Site, Section, Estuary info
+  }
+}
+#
+#Combine and remove duplicates based on priority ranking - add tmp# in "Section_cells_geo" for all sections as needed
+(ReefZoning_geo <-  do.call(rbind, ReefZoning) %>% #Join all sections then reorder Section values
+    mutate(ShoreZone = factor(ShoreZone, levels = ShoreZone_zones, ordered = TRUE)) %>%
+    arrange(ShoreZone) %>% group_by(MGID) %>%  #Arrange df in order by ID and keep highest ranked Section
+    slice(1)) 
+#
+ReefZoning_cells <- ReefZoning_geo %>% st_set_geometry(NULL) #Remove geometry
+#
+head(ReefZoning_cells) #Check data
+#
+#Plot Estuary area against Sections to confirm all are represented
+summary(Site_Grid_working$MGID %in% ReefZoning_cells$MGID) #Check IDs match, FALSE = cells with no designation
+tmap_arrange(
+  tm_shape(Site_Grid) + tm_polygons(col = "darkgray"),
+  tm_shape(ReefZoning_geo) + tm_polygons(fill = "ShoreZone"),
+  nrow = 1, ncol = 2)
+#
+#Add Section designations to working df
+Site_Grid_working_6 <- full_join(Site_Grid_working %>% dplyr::select(-any_of(c("Zone", "ShoreZone"))), #Remove columns being edited from working df
+                                 ReefZoning_cells %>% dplyr::select(MGID, Zone, ShoreZone), by = "MGID") #Add data by ID
+#
+head(Site_Grid_working_6)
+#
+##Plot to confirm join was correct
+tm_shape(Site_Grid_working_6) + tm_polygons(fill ="Zone") + tm_layout(frame = FALSE)
+#
+#
+#
+#
+####6Alt. SKIP CODE SECTION IF NO ALT: Add Additional Zone and ShoreZone information####
+#
+##Assign Zone and ShoreZone information and remove duplicates based on priority ranking 
+ReefZoning_alt <- vector("list", length(unique(ShoreZone_zones)))
+for(i in seq_along(Reef_zones)){
+  ReefZoning_alt[[i]] <- vector("list", length(ShoreZone_zones))
+  for(j in seq_along(ShoreZone_zones)){
+    zone_name <- paste0(Site_Code, "_", Reef_zones[i],"_", ShoreZone_zones[j])
+    ReefZoning_alt[[j]] <- Site_Grid_alt_working[lengths(st_intersects(Site_Grid_alt_working, get(zone_name))) > 0, ] %>% # Limit to section area
+      mutate(Zone = (Zone_Order %>% filter(Zone_Name == Reef_zones[i]) %>% pull(Zone) %>% unique()),
+             ShoreZone = ShoreZone_zones[j]) %>%  left_join(Estuary_long, by = "Site") # Add Site, Section, Estuary info
+  }
+  rm(zone_name, i, j)
+}
+##
+#Combine and remove duplicates based on priority ranking - add tmp# in "Section_cells_geo" for all sections as needed
+(ReefZoning_geo_alt <-  do.call(rbind, ReefZoning_alt) %>% #Join all sections then reorder Section values
+    mutate(ShoreZone = factor(ShoreZone, levels = ShoreZone_zones, ordered = TRUE)) %>%
+    arrange(ShoreZone) %>% group_by(MGID) %>%  #Arrange df in order by ID and keep highest ranked Section
+    slice(1)) 
+#
+ReefZoning_cells_alt <- ReefZoning_geo_alt %>% st_set_geometry(NULL) #Remove geometry
+#
+head(ReefZoning_cells_alt) #Check data
+#
+#Plot Estuary area against Sections to confirm all are represented
+summary(Site_Grid_alt_working$MGID %in% ReefZoning_cells_alt$MGID) #Check IDs match, FALSE = cells with no designation
+tmap_arrange(
+  tm_shape(Site_Grid_alt) + tm_polygons(col = "darkgray"),
+  tm_shape(ReefZoning_geo_alt) + tm_polygons(fill = "ShoreZone"),
+  nrow = 1, ncol = 2)
+#
+#Add Section designations to working df
+Site_Grid_working_6_alt <- full_join(Site_Grid_alt_working %>% dplyr::select(-any_of(c("Zone", "ShoreZone"))), #Remove columns being edited from working df
+                                     ReefZoning_cells_alt %>% dplyr::select(MGID, Zone, ShoreZone), by = "MGID") #Add data by ID
+#
+head(Site_Grid_working_6_alt)
+#
+##Plot to confirm join was correct
+tm_shape(Site_Grid_working_6_alt) + tm_polygons(fill ="ShoreZone")+ tm_layout(frame = FALSE)
+#
+##Name if saving: StateGrid_Zones_grid 
+#
+#
+#
+#
+####6 Merge - run (-A-) if no Alt, run (-B-) if working with Alt, run (-C-) if updating data layers####
+#
+#
+Site_Grid_All <- Site_Grid_working_6 #(-A-)
+Site_Grid_All <- rbind(Site_Grid_working_6, Site_Grid_working_6_alt) #(-B-)
+#
+##ONLY RUN IF UPDATING DATA LAYERS (-C-)
+Site_Grid_All <- Site_Grid
+Site_Grid_working_6 <- Site_Grid
+#
+#
+head(Site_Grid_All)
+#
+tm_shape(Site_Grid_All) + tm_polygons(col ="ShoreZone")+ tm_layout(frame = FALSE)
+#Name if saving map: Site_MicroGrid_Zones
+#
+
 ####Output data for use in selecting stations####
 #
 head(Site_Grid_All)
