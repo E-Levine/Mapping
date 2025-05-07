@@ -296,7 +296,7 @@ plot(Site_Grid$geometry)
 #
 #
 #
-####Base Site microgrid cells to work with - Skip if updating data layer####
+####Base Site microgrid cells to work with - Skip if using existing microgrid data to update data layer####
 #
 Site_Grid <- MicroGrid[lengths(st_intersects(MicroGrid, Estuary_area))> 0,]  %>% dplyr::select(-Estuary)
 plot(Site_Grid$geometry)
