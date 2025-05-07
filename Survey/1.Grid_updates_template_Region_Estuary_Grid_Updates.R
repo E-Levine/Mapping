@@ -173,7 +173,7 @@ st_crs(Seagrass_alt)
 #
 #
 #
-####Load files - updating specific layers####
+####Load files - updating specific layers from existing microgrid data file####
 #
 ##Estuary MicroGrid - ONLY FOR USE WITH EXISTING DATA - RETURN TO LINE 30 IF FIRST RUN
 #
