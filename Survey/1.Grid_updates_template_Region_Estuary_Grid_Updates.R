@@ -840,7 +840,7 @@ tmap_arrange(
   nrow = 1, ncol = 2)
 #
 #Add Section designations to working df
-Site_Grid_working_6 <- full_join(Site_Grid_working %>% dplyr::select(-any_of(c("Zone", "ShoreZone"))), #Remove columns being edited from working df
+Site_Grid_working_6 <- full_join(Site_Grid_working_5 %>% dplyr::select(-any_of(c("Zone", "ShoreZone"))), #Remove columns being edited from working df
                                  ReefZoning_cells %>% dplyr::select(MGID, Zone, ShoreZone), by = "MGID") #Add data by ID
 #
 head(Site_Grid_working_6)
@@ -884,7 +884,7 @@ tmap_arrange(
   nrow = 1, ncol = 2)
 #
 #Add Section designations to working df
-Site_Grid_working_6_alt <- full_join(Site_Grid_alt_working %>% dplyr::select(-any_of(c("Zone", "ShoreZone"))), #Remove columns being edited from working df
+Site_Grid_working_6_alt <- full_join(Site_Grid_working_5_alt %>% dplyr::select(-any_of(c("Zone", "ShoreZone"))), #Remove columns being edited from working df
                                      ReefZoning_cells_alt %>% dplyr::select(MGID, Zone, ShoreZone), by = "MGID") #Add data by ID
 #
 head(Site_Grid_working_6_alt)

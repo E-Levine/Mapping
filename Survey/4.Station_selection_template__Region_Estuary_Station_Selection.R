@@ -93,29 +93,36 @@ head(Comp_Stations)
 #
 #Final combined data frame
 All_data <- left_join((Site_Grid %>% dplyr::select(-Site, -Section, -SHA_Name, -SHA_Class, -Subsection, -Bathy_m)),
-                      Site_data %>% dplyr::select(MGID, Site:last_col())) %>%
-  mutate(Seagrass = ifelse(is.na(Seagrass), "Unk", Seagrass))
+                      Site_data %>% dplyr::select(MGID, Site:last_col()))  %>%
+  {if("Seagrass" %in% colnames(.)){
+    mutate(., Seagrass = ifelse(is.na(Seagrass), "Unk", Seagrass))
+  } else {
+    mutate(., Seagrass = NA)
+  }}
 #
 head(All_data)
 #
 #
 ###Data filters: Oyster GIS Layer presence, SHA Class, Depth, Seagrass presence, HSM score, previous data 
 #If data should be used to filter, enter desired data/range in following lines. If data is not used or specific entries are required (i.e. SHA class, Section), enter NA.\
-Selection_process <- c("Ordered") #Will stations be chosen by rank/value of qualifiers ("Ordered"), by random selection within area ("Random"), or by specified boundary ("B_box")
-Station_selection <- c("Section") #Should cells be selected within the entire estuary ("Site"), within each estuary section ("Section"), or within specific Sections or boundary ("NA")
-Oyster_Layer <- c("Y") #Should cells with oysters in the GIS layer be prioritize ("Y"), without oysters be prioritized ("N"), or NA
+Selection_process <- c("Zone") #Will stations be chosen by rank/value of qualifiers ("Ordered"), by random selection within area ("Random"), by random selection within Zones/ShoreZones ("Zone") or by specified boundary ("B_box")
+Station_selection <- c("NA") #Should cells be selected within the entire estuary ("Site"), within each estuary section ("Section"), or within specific Sections/Zones or boundary ("NA")
+Oyster_Layer <- c("NA") #Should cells with oysters in the GIS layer be prioritize ("Y"), without oysters be prioritized ("N"), or NA
 SHA_classification <- c("N") #Should SHA classification be used for selection "Y" or "N"
 SHA_grouping <- c("N") #Should SHA class be used for grouping to select stations (i.e. group_by(Section) = "N", group_by(Section, SHA) = "Y")
-Depth_range <- c(0, 3) #Minimum and maximum depth for selections (inclusive), or "NA" for no depth limitations
+Depth_range <- c(0, 6) #Minimum and maximum depth for selections (inclusive), or "NA" for no depth limitations
 Seagrass_presence <- c("NA") #Should presence of seagrass exclude cells ("Y"), include cells ("N"), or NA
 HSM_scoring <- c(NA) #Cut off value for HSM scores below which cells are excluded, or NA
-Existing_survey_data <- c("E") #Should cells with existing data (survey stations) be excluded ("E"), selected for ("I"), or ignored ("N")
+Existing_survey_data <- c("N") #Should cells with existing data (survey stations) be excluded ("E"), selected for ("I"), or neither ("N")
+ShoreZoning <-c("Y") #Should Zones be stratified within ShoreZone "Y" or "N" (Required if Station_selection = "Zone")
 #
 #If stations should only come from one Section and should be assigned proportionally within SHA class, Station_selection = NA and SHA_grouping = Y
 #
 ##Data specifications: Selection of stations from specific/limited SHA class or Section (If using, SHA_classification and/or Station_Selection should be NA above)
 Target_SHA  <- c("AP", "CA", "CR", "PD", "UN") #list of SHA classes to include
 Target_Sections <- c("N", "S") #Enter section code for all sections desired or "NA" if want all sections.
+Zones <- c("CG") #If selecting within zones (Station_selection = "Zone"), provide code for zones to be included in selection
+Zoning_Method <- c("ByZone") #Is the total number of target stations for all listed zones combined ("All") or the target number per listed Zone ("ByZone")
 #
 ##Survey specifications
 #Num_[]:Number of stations per site/section if require specific number per group - Can replace with NA if #/section varies
@@ -152,9 +159,9 @@ if(Selection_process == "Ordered"){
      #Filter by SHA classification
      filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
      #Filter by depth
-     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else MGID == MGID) %>%
+     {if("Depth" %in% colnames(.) & is.numeric(Depth_range)) {filter(., Depth >= Depth_range[1] & Depth <= Depth_range[2])} else {.}} %>%
      #Filter by seagrass
-     filter(if(Seagrass_presence == "N") !(Seagrass == "Continuous" & Seagrass == "Discontinuous") else if (Seagrass_presence == "Y") (Seagrass == "Continuous" | Seagrass == "Discontinuous") else Seagrass == Seagrass) %>%
+     {if("Seagrass" %in% colnames(.) & Seagrass_presence == "N") {filter(., !(Seagrass == "Continuous" & Seagrass == "Discontinuous"))} else if("Seagrass" %in% colnames(.) & Seagrass_presence == "Y") {filter(.,(Seagrass == "Continuous" | Seagrass == "Discontinuous"))} else {.}} %>%
      #Filter by HSM score
      filter(if(is.na(HSM_scoring)) MGID == MGID else HSM_Score >= HSM_scoring)%>%
      #Filter by existing data 
@@ -189,9 +196,9 @@ if(Selection_process == "Ordered"){
      #Filter by SHA classification
      filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
      #Filter by depth
-     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else MGID == MGID) %>%
+     {if("Depth" %in% colnames(.) & is.numeric(Depth_range)) {filter(., Depth >= Depth_range[1] & Depth <= Depth_range[2])} else {.}} %>%
      #Filter by seagrass
-     filter(if(Seagrass_presence == "N") !(Seagrass == "Continuous" & Seagrass == "Discontinuous") else if (Seagrass_presence == "Y") (Seagrass == "Continuous" | Seagrass == "Discontinuous") else Seagrass == Seagrass) %>%
+     {if("Seagrass" %in% colnames(.) & Seagrass_presence == "N") {filter(., !(Seagrass == "Continuous" & Seagrass == "Discontinuous"))} else if("Seagrass" %in% colnames(.) & Seagrass_presence == "Y") {filter(.,(Seagrass == "Continuous" | Seagrass == "Discontinuous"))} else {.}} %>%
      #Filter by HSM score
      filter(if(is.na(HSM_scoring)) MGID == MGID else HSM_Score >= HSM_scoring)%>%
      #Filter by existing data 
@@ -216,6 +223,95 @@ if(Selection_process == "Ordered"){
   Stations_selected <- rbind(Target, Extra) %>% dplyr::select(Type, Section, Station, MGID:HSM_Score, geometry) %>% 
     {if(Station_selection == "Site") group_by(., Section) %>% arrange(., Station, .by_group = FALSE) else arrange(., Station, .by_group = TRUE)}
   head(Stations_selected)
+} else if(Selection_process == "Zone") {
+  #
+  #Strict selection based on all specified parameters
+  (temp_z <- All_data %>% 
+     #Stations by Site or within every Section
+     filter(., Zone %in% Zones) %>% group_by(., Zone) %>%
+     #Filter by Oyster GIS layer
+     filter(if(Oyster_Layer == "Y")  FL_Oysters == "Y" else if (Oyster_Layer == "N") FL_Oysters == "N" else MGID == MGID) %>%
+     #Filter by SHA classification
+     filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
+     #Filter by depth
+     {if("Depth" %in% colnames(.) & is.numeric(Depth_range)) {filter(., Depth >= Depth_range[1] & Depth <= Depth_range[2])} else {.}} %>%
+     #Filter by seagrass
+     {if("Seagrass" %in% colnames(.) & Seagrass_presence == "N") {filter(., !(Seagrass == "Continuous" & Seagrass == "Discontinuous"))} else if("Seagrass" %in% colnames(.) & Seagrass_presence == "Y") {filter(.,(Seagrass == "Continuous" | Seagrass == "Discontinuous"))} else {.}} %>%
+     #Filter by HSM score
+     filter(if(is.na(HSM_scoring)) MGID == MGID else HSM_Score >= HSM_scoring)%>%
+     #Filter by existing data 
+     filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID) else (MGID == MGID)) %>%
+     mutate(Group = case_when(Zoning_Method == "All" & ShoreZoning == "Y" ~ ShoreZone, 
+                              Zoning_Method == "ByZone" & ShoreZoning == "Y" ~ paste0(Zone,"-",ShoreZone),
+                              Zoning_Method == "ByZone" & ShoreZoning == "N" ~ Zone, 
+                              TRUE ~ "All Zones")) %>%
+     {if(SHA_grouping == "Y"){mutate(Group = paste0(Group, "-", Subsection))} else {.}}
+  )
+  print(tm_shape(temp_z) + tm_polygons(fill = "ShoreZone") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
+  
+  #Determine number of stations per group
+  (Stations_needed <- if(Zoning_Method == "ByZone" & ShoreZoning == "Y") {#Number per Zone * ShoreZone
+    count(as.data.frame(temp_z), Zone, ShoreZone) %>% 
+      mutate(Possible_cells = nrow(temp_z), 
+             x = (if(is.na(Prop_required)) Num_Target else round(n*Prop_required,0)), 
+             y = (if(is.na(Prop_required)) Num_Extra else round(n*Prop_required*0.5,0)),
+             n_Stations = x+y,
+             Total = sum(n_Stations),
+             Code = paste(Zone, ShoreZone, sep = "-")) %>%
+      rename(!!paste0((if(is.na(Prop_required)) Num_Target else Prop_required),"_Target") := x, !!paste0((if(is.na(Prop_required)) Num_Extra else Prop_required*0.5), "_Extra") := y)
+  } else if (Zoning_Method == "All" & ShoreZoning == "Y") { #Number per ShoreZone
+    count(as.data.frame(temp_z), ShoreZone) %>% 
+      mutate(Possible_cells = nrow(temp_z), 
+             x = (if(is.na(Prop_required)) Num_Target else round(n*Prop_required,0)), 
+             y = (if(is.na(Prop_required)) Num_Extra else round(n*Prop_required*0.5,0)),
+             n_Stations = x+y,
+             Total = sum(n_Stations),
+             Code = paste(ShoreZone)) %>%
+      rename(!!paste0((if(is.na(Prop_required)) Num_Target else Prop_required),"_Target") := x, !!paste0((if(is.na(Prop_required)) Num_Extra else Prop_required*0.5), "_Extra") := y)
+  } else if (Zoning_Method == "All" & ShoreZoning == "N") {#Number from all Zones
+    count(as.data.frame(temp_z)) %>% 
+      mutate(Possible_cells = nrow(temp_z), 
+             x = (if(is.na(Prop_required)) Num_Target else round(n*Prop_required,0)), 
+             y = (if(is.na(Prop_required)) Num_Extra else round(n*Prop_required*0.5,0)),
+             n_Stations = x+y,
+             Total = sum(n_Stations),
+             Code = paste("All Zones")) %>%
+      rename(!!paste0((if(is.na(Prop_required)) Num_Target else Prop_required),"_Target") := x, !!paste0((if(is.na(Prop_required)) Num_Extra else Prop_required*0.5), "_Extra") := y)
+  } else { #Number per Zone
+    count(as.data.frame(temp_z), Zone) %>% 
+      mutate(Possible_cells = nrow(temp_z), 
+             x = (if(is.na(Prop_required)) Num_Target else round(n*Prop_required,0)), 
+             y = (if(is.na(Prop_required)) Num_Extra else round(n*Prop_required*0.5,0)),
+             n_Stations = x+y,
+             Total = sum(n_Stations),
+             Code = Zone) %>%
+      rename(!!paste0(Prop_required*100,"%_Target") := x, !!paste0(Prop_required*0.5*100, "%_Extra") := y)
+  }) 
+  #
+  #Assign random numbers per group
+  t_z <- temp_z %>% 
+    {if(Zoning_Method == "ByZone" & ShoreZoning == "N") {group_by(., Zone)} else if(Zoning_Method == "ByZone" & ShoreZoning == "Y") {group_by(., Zone, ShoreZone)} else if(Zoning_Method == "All" & ShoreZoning == "Y") {group_by(., ShoreZone)} else {.}} %>% #Group by Zone, ShoreZone, or both
+    {if(SHA_grouping == "Y" & Zoning_Method == "ByZone" & ShoreZoning == "Y") {group_by(., Zone, ShoreZone, Subsection)} else if(SHA_grouping == "Y" & Zoning_Method == "All" & ShoreZoning == "Y") {group_by(., ShoreZone, Subsection)} else if(SHA_grouping == "Y" & Zoning_Method == "ByZone" & ShoreZoning == "N") {group_by(., Zone, Subsection)} else {.}} %>% #Group by Zone*ShoreZone*SHA, ShoreZone*SHA class, or Zone*SHA class
+    {if(!is.na(HSM_scoring)) arrange(., desc(HSM_Score)) else (.)} %>% #Arrange in order of decreasing HSM score if included in selection process
+    mutate(rand_num = sample.int(n())) #Assign numbers by order within group
+  #
+  #Selection stations 
+  Stations_selected = data.frame() #Empty dataframe to fill
+  #Select target and extra stations per group and append to dataframe
+  for(i in unique(t_z$Group)){
+    Target_z <- t_z %>% filter(Group == i) %>% arrange(rand_num) %>%
+      head(as.integer((filter(Stations_needed, Code == i))[,ncol(Stations_needed)-4])) %>%
+      mutate(Type = "Target") %>% rename("Station" = rand_num)
+    Extra_z <- t_z %>% filter(Group == i) %>% arrange(rand_num) %>%
+      subset(rand_num > as.integer((filter(Stations_needed, Code == i))[,ncol(Stations_needed)-4]) & rand_num <= as.integer((filter(Stations_needed, Code == i))[,ncol(Stations_needed)-2])) %>%
+      mutate(Type = "Extra") %>% rename("Station" = rand_num)
+    #
+    Stations_selected <- rbind(Stations_selected, rbind(Target_z, Extra_z)) %>%
+      {if(SHA_classification == "Y" & Zoning_Method == "ByZone" & ShoreZoning == "Y") {group_by(., Zone, ShoreZone, SHA_Class)} else if(SHA_classification == "Y" & Zoning_Method == "ByZone" & ShoreZoning == "N") {group_by(., Zone, SHA_Class)} else if(SHA_classification == "Y" & Zoning_Method == "All" & ShoreZoning == "Y"){group_by(., ShoreZone, SHA_Class)} else {group_by(., Type)}} %>% 
+      arrange(Station, .by_group =  TRUE)
+  }
+  head(Stations_selected)
+  #
 } else {
   (temp_r <- All_data %>% 
      #Stations by Site or within every Section
@@ -225,14 +321,14 @@ if(Selection_process == "Ordered"){
      #Filter by SHA classification
      filter(if(SHA_classification == "Y") (Subsection %in% Target_SHA) else MGID == MGID) %>%
      #Filter by depth
-     filter(if(is.numeric(Depth_range)) (Depth >= Depth_range[1] & Depth <= Depth_range[2]) else MGID == MGID) %>%
+     {if("Depth" %in% colnames(.) & is.numeric(Depth_range)) {filter(., Depth >= Depth_range[1] & Depth <= Depth_range[2])} else {.}} %>%
      #Filter by seagrass
-     filter(if(Seagrass_presence == "N") !(Seagrass == "Continuous" & Seagrass == "Discontinuous") else if (Seagrass_presence == "Y") (Seagrass == "Continuous" | Seagrass == "Discontinuous") else Seagrass == Seagrass) %>%
+     {if("Seagrass" %in% colnames(.) & Seagrass_presence == "N") {filter(., !(Seagrass == "Continuous" & Seagrass == "Discontinuous"))} else if("Seagrass" %in% colnames(.) & Seagrass_presence == "Y") {filter(.,(Seagrass == "Continuous" | Seagrass == "Discontinuous"))} else {.}} %>%
      #Filter by HSM score
      filter(if(is.na(HSM_scoring)) MGID == MGID else HSM_Score >= HSM_scoring) %>%
      #Filter by existing data 
      filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID) else (MGID == MGID)) %>%
-     rowwise() %>%  mutate(Group = ifelse(SHA_grouping == "Y", paste(Section, Subsection, sep = "-"), Section))
+     rowwise() %>% mutate(Group = ifelse(SHA_grouping == "Y", paste(Section, Subsection, sep = "-"), Section))
   )
   #
   print(tm_shape(temp_r) + tm_polygons(col = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
@@ -257,7 +353,7 @@ if(Selection_process == "Ordered"){
                Total = sum(n_Stations),
                Code = paste(Group)) %>%
         rename(!!paste0((if(is.na(Prop_required)) Num_Target else Prop_required),"_Target") := x, !!paste0((if(is.na(Prop_required)) Num_Extra else Prop_required*0.5), "_Extra") := y)
-  } else {
+    } else {
       count(as.data.frame(temp_r), Section) %>% 
         mutate(Possible_cells = nrow(temp_r), 
                x = (if(is.na(Prop_required)) Num_Target else round(n*Prop_required,0)), 
@@ -312,11 +408,14 @@ if(Selection_process == "Ordered"){
                                            "Seagrass",
                                            "HSM scores",
                                            "Existing survey data",
+                                           "Zones",
+                                           "ShoreZones",
                                            "Station groups"),
                               "Evaluation" = c(Region, Site_Code, State_Grid, ifelse(exists("Alt_State_Grid"), Alt_State_Grid, "NA"), Date,
                                                paste(Start_year, End_year, sep = "-"), paste(if(is.numeric(Survey_timeperiod)) {month.abb[Survey_timeperiod]} else {Survey_timeperiod}, Survey_year, sep = " "),
-                                               ifelse(Selection_process == "Ordered", "Ranked values", "Random"),
-                                               ifelse(Station_selection == "NA" & Selection_process == "B_box", paste0("Station IDs assigned within specified boundary: ", paste(sapply(Boundary, paste, collapse = ""), collapse = ", ")), ifelse(Station_selection == "NA" & Selection_process != "B_box", paste0("Station IDs assigned within: ", paste(sapply(Target_Sections, paste, collapse = ""), collapse = ", ")), paste0("Station IDs assigned within: ", Station_selection))),
+                                               ifelse(Selection_process == "Ordered", "Ranked values", ifelse(Selection_process == "Zone", "Organized by Zone and/or ShoreZone", "Random")),
+                                               ifelse(Station_selection == "NA" & Selection_process == "B_box", paste0("Station IDs assigned within specified boundary: ", paste(sapply(Boundary, paste, collapse = ""), collapse = ", ")), ifelse(Station_selection == "NA" & (Selection_process == "Ordered"|Selection_process == "Random"), paste0("Station IDs assigned within: ", paste(sapply(Target_Sections, paste, collapse = ""), collapse = ", ")), 
+                                                                                                                                                                                                                                                   ifelse(Station_selection == "NA" & Selection_process == "Zone", paste0("Station IDs assigned within: ",Zones, ", ", Zoning_Method), paste0("Station IDs assigned within: ", Station_selection)))),
                                                ifelse(Oyster_Layer == "Y", "Oyster presence selected for", ifelse(Oyster_Layer == "N", "Oyster presence selected against", "Oyster layer ignored")),
                                                ifelse(SHA_classification == "Y", paste("SHA classes included:", paste(sapply(Target_SHA, paste, collapse = ""), collapse = ", "), collapse =  " "), "SHA classes ignored"),
                                                ifelse(SHA_grouping == "Y", "SHA class used to group stations for selection", "SHA not used to group stations for selection"),
@@ -324,13 +423,15 @@ if(Selection_process == "Ordered"){
                                                ifelse(Seagrass_presence == "Y", "Exclusion of cells with seagrass", ifelse(Seagrass_presence == "N", "Inclusion of cells with seagrass", "Segrass ignored")),
                                                ifelse(is.numeric(HSM_scoring), paste0("Minimum HSM value included: ", HSM_scoring), "HSM scores ignored"),
                                                ifelse(Existing_survey_data == "Y", "Stations previously surveyed excluded", "All stations allowed"),
-                                               ifelse(Selection_process == "B_box", paste("Specified boundary"), ifelse(Selection_process == "Random", paste(sapply(unique(Stations_needed$Code), paste, collapse = ""), collapse = ", "), paste(sapply(unique(Stations_selected$Section), paste, collapse = ""), collapse = ", "))))))
+                                               ifelse(Selection_process == "Zone", paste(sapply(Zones, paste, collapse = ""), collapse = ", "), "Zones not used or specified."),
+                                               ifelse(Selection_process == "Zone" & ShoreZoning == "Y", paste(sapply(Stations_needed$Code, paste, collapse = ""), collapse = ", "), ifelse(Selection_process == "Zone" & ShoreZoning == "N", "ShoreZones not used", "ShoreZones not used or specified")),
+                                               ifelse(Selection_process == "B_box", paste("Specified boundary"), ifelse(Selection_process == "Random", paste(sapply(unique(Stations_needed$Code), paste, collapse = ""), collapse = ", "), ifelse(Selection_process == "Zone", paste(sapply(unique(Stations_needed$Code), paste, collapse = ""), collapse = ", "), paste(sapply(unique(Stations_selected$Section), paste, collapse = ""), collapse = ", ")))))))
 #
 #
 #Save all raw data and cleaned data for output
 All_raw_data <- as.data.frame(Stations_selected) %>% dplyr::select(-geometry)
 Cleaned_data <- as.data.frame(Stations_selected) %>% 
-  dplyr::select(Site, Section, Type, Station, MGID:Long_DD_X, FL_Oysters:Seagrass, HSM_Score, -geometry)
+  dplyr::select(Site, Section, Type, Station, MGID:Long_DD_X, FL_Oysters:Seagrass, any_of(c("HSM_Score", "Zone", "ShoreZone")), -geometry)
 #
 head(Cleaned_data)
 #
@@ -371,6 +472,12 @@ if(Map_output == "Site") {
     #Add SHA classes if used for selection
     {if(SHA_classification == "Y") tm_shape(name = "SHA classification", All_data %>% filter(!is.na(SHA_Class)))+  
         tm_polygons("SHA_Class", title = "", palette = c("magma"), alpha = 0.4)} +
+    #Add Zones if used for selection
+    {if(Selection_process == "Zone" & Zoning_Method == "All") tm_shape(name = "Zones", All_data %>% filter(!is.na(Zone)))+  
+        tm_polygons("Zone", title = "", palette = c("magma"), alpha = 0.4)} +
+    #Add ShoreZones if used for selection
+    {if(Selection_process == "Zone" & Zoning_Method == "ByZone") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone)))+  
+        tm_polygons("ShoreZone", title = "", palette = c("magma"), alpha = 0.4)} +
     #Add depth
     tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5) +
     #Add stations
