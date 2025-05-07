@@ -279,7 +279,7 @@ plot(Depth)
 #
 #
 ##Seagrass areas - limited to grid areas - only run if updating data layer
-All_seagrass <- as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial")
+All_seagrass <- as(st_read("../Base Layers/Seagrass Habitat in FL/Seagrass_Habitat_in_Florida.shp"), "Spatial")
 #Limit to primary state grid
 Seagrass <- st_as_sf(crop(All_seagrass, extent(MicroGrid)))
 #Check data
