@@ -153,7 +153,7 @@ plot(Depth_alt)
 #
 #
 ##Seagrass areas - limited to grid areas
-All_seagrass <- as(st_read("../Base Layers/Seagrass/Seagrass_Habitat_in_Florida.shp"), "Spatial")
+All_seagrass <- as(st_read("../Base Layers/Seagrass Habitat in FL/Seagrass_Habitat_in_Florida.shp"), "Spatial")
 #Limit to primary state grid
 Seagrass <- st_as_sf(crop(All_seagrass, extent(Estuary_area)))
 #Check data
