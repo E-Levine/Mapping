@@ -93,7 +93,7 @@ head(Comp_Stations)
 #
 #Final combined data frame
 All_data <- left_join((Site_Grid %>% dplyr::select(-Site, -Section, -SHA_Name, -SHA_Class, -Subsection, -Bathy_m)),
-                      Site_data %>% dplyr::select(MGID, Site:last_col()))  %>%
+                      Site_data %>% dplyr::select(MGID, County:last_col()))  %>%
   {if("Seagrass" %in% colnames(.)){
     mutate(., Seagrass = ifelse(is.na(Seagrass), "Unk", Seagrass))
   } else {
