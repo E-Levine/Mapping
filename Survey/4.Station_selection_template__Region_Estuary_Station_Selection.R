@@ -456,7 +456,7 @@ if(Include_name == "N"){
 ####Interactive site and static section maps####
 #
 ###Maps are created and automatically saved. Create network folder with following mapping if needed: Region/Maps/Survey/SiteCode
-#Specify mapping output as either "Site", "Section", or "Box". Site and Box will output an overall map for the Site or the boundary specified, Section will output individuals maps for each section. 
+#Specify mapping output as either "Site", "Section", "Box", or "Zone". Site and Box will output an overall map for the Site or the boundary specified, Section will output individuals maps for each section. Zone will output a static make of the area of the Zone with either Zone or ShoreZones indicated. 
 #Oyster layer and SHA classifications will be added as a layer if used in station selection process.
 #Depth will be added as a layer in interactive Site map but not in static Section maps
 #
@@ -567,6 +567,35 @@ if(Map_output == "Site") {
   } else {
     saveWidget(Site_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_Bbox_", Survey_year, "_", Survey_timeperiod, "_", B_name, "_widget.html"))
   }
+} else if (Map_output == "Zone"){
+  leaflet_map <- tm_shape(name = "Microgrid cells", All_data, bbox = extent(All_data %>% subset(!is.na(Zone)))) + 
+    tm_borders(col = "gray") + #Cell borders
+    #Add oyster layer if used for selection
+    {if(Oyster_Layer == "Y") tm_shape(name = "Oyster layer presence", All_data %>% subset(FL_Oysters == "Y") %>% 
+                                        mutate(FL_Oysters = ifelse(FL_Oysters == "Y", "Oyster layer", FL_Oysters)))+  #Change text for legend
+        tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)} +
+    #Add SHA classes if used for selection
+    {if(SHA_classification == "Y") tm_shape(name = "SHA classification", All_data %>% filter(!is.na(SHA_Class)))+  
+        tm_polygons("SHA_Class", title = "", palette = c("magma"), alpha = 0.4)} +
+    #Add stations
+    tm_shape(name = "Survey stations", Stations_selected %>% mutate(Type = paste0(Type, " Station")))+  
+    tm_polygons("Type", title = "", palette = c("YlOrRd")) + #Add colors for Target and Extra stations - use "palette = c("red")" if only Target stations
+    #Add FL shoreline
+    tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
+    #Add zone areas
+    {if(ShoreZoning == "Y") tm_shape(name = "ShoreZone", All_data) + tm_borders(col = "ShoreZone", size = 1.75)} +
+    {if(ShoreZoning == "N") tm_shape(name = "Zone", All_data) + tm_borders(col = "Zone")}+
+    #Add cell Station numbers
+    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = 0.7)+ 
+    #Add monitoring stations
+    {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
+    {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations")) + tm_view(text.size.variable = TRUE)}+
+    tm_layout(main.title = paste0(if(is.numeric(Survey_timeperiod)) month.abb[Survey_timeperiod] else Survey_timeperiod, " ", Survey_year, 
+                                  " Survey Station Selection"), main.title.position = "center")
+  #
+  #
+  tmap_save(leaflet_map, paste0("Maps/Survey/", Site_Code, "/", Site_Code,"_survey_stations_Zone_", Survey_year, "_", Survey_timeperiod, ".jpg"))
+  #
 }
 #
 #
