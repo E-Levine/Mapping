@@ -74,7 +74,7 @@ qtm(FL_outline)
 #
 #
 #Monitoring stations - for plotting fixed stations if desired - can skip if not plotting fixed stations in final maps
-Monitoring <- read.csv("../Reference Files/Current_Monitoring_Stations_2023.csv", na.string = c("Z", "", "NA"))
+Monitoring <- read.csv("../Reference Files/Current_Monitoring_Stations_2023.csv", na.string = c("Z", "", "NA")) %>% drop_na(DecLat)
 head(Monitoring)
 Monitor_spdf <- SpatialPointsDataFrame(Monitoring[,3:4], Monitoring)
 crs(Monitor_spdf) <- "+proj=longlat +datum=WGS84 +no_defs +type=crs"
@@ -82,7 +82,7 @@ crs(Monitor_spdf) <- "+proj=longlat +datum=WGS84 +no_defs +type=crs"
 Monitoring <- NA #Run if not including Monitoring stations
 Monitoring_locations <- "NA" #Either "Y" to include in maps, or "NA" to not include
 #
-#Completed survey stations 
+#Completed survey stations - used for including or excluding previously surveyed stations
 Comp_Stations <- read.csv(paste0("Output_Data/", Site_Code, "_Station_MGIDs.csv"), na.string = c("Z", "", "NA")) %>%
   rename("MGID" = Confirmed_MGID, "Lat_DD_Y" = Latitude, "Long_DD_X" = Longitude)
 head(Comp_Stations)
@@ -93,7 +93,7 @@ head(Comp_Stations)
 #
 #Final combined data frame
 All_data <- left_join((Site_Grid %>% dplyr::select(-Site, -Section, -SHA_Name, -SHA_Class, -Subsection, -Bathy_m)),
-                      Site_data %>% dplyr::select(MGID, County:last_col()))  %>%
+                      Site_data %>% dplyr::select(MGID, State_Ref:last_col()))  %>%
   {if("Seagrass" %in% colnames(.)){
     mutate(., Seagrass = ifelse(is.na(Seagrass), "Unk", Seagrass))
   } else {
@@ -124,7 +124,7 @@ Target_Sections <- c("N", "S") #Enter section code for all sections desired or "
 Zones <- c("CG") #If selecting within zones (Station_selection = "Zone"), provide code for zones to be included in selection
 Zoning_Method <- c("ByZone") #Is the total number of target stations for all listed zones combined ("All") or the target number per listed Zone ("ByZone")
 #
-##Survey specifications
+##Survey specifications - use either the total number (Num_Target section) or proportion of area (Num_Target_Total section). If using total number, set Prop_required <- c(NA)
 #Num_[]:Number of stations per site/section if require specific number per group - Can replace with NA if #/section varies
 Num_Target <- 20
 Num_Extra <- 15
@@ -133,7 +133,7 @@ Num_Target_Total <- 100
 Num_Extra_Total <- 100*0.5
 Prop_required <- c(0.5) #Proportion required for random selection - if specifying number T/E (lines 117/118), then NA
 #
-##Boundary of selection - limiting coordinate in each direction - West, East, South, North
+##Boundary of selection - limiting coordinate in each direction - West, East, South, North - not needed unless want to select within user-defined boundary
 Boundary <- c(-82.44655, -82.53977, 27.66694, 27.72659)
 Include_name <- c("Y") #Should a specific name be included in file naming (to identify bounded area)? Y/N
 B_name <- c("PRassa_TarponB") #What name should be used?
@@ -144,7 +144,7 @@ B_name <- c("PRassa_TarponB") #What name should be used?
 ####Data filtering####
 #
 ###View data area
-qtm(All_data, fill = "Depth")
+qtm(All_data, fill = "Section")
 #
 ##Ordered selection will select the number of stations specified in lines 114-115
 ##Random selection will select proportion number of target stations and half as many extras stations. Cannot select for highest HSM scores in random selection.
@@ -190,7 +190,7 @@ if(Selection_process == "Ordered"){
      #Restrict grid to within specified boundary
      subset(Long_DD_X > Boundary[1] & Long_DD_X < Boundary[2] & Lat_DD_Y > Boundary[3] & Lat_DD_Y < Boundary[4]) %>%
      #Stations by Site or within every Section
-     {if(Station_selection == "Section") group_by(., Section) else if (Station_selection == "Site") group_by(., Site) else if (Station_selection == "NA" & Selection_process != "B_box") filter(., Section %in% Target_Sections) %>% group_by(., Section) else if (Station_selection == "NA" & Selection_process == "B_box") group_by(., Section)} %>%
+     {if(Station_selection == "Section") group_by(., Section) else if (Station_selection == "Site") group_by(., Site) else if (Station_selection == "NA" & Selection_process != "B_box") filter(., Section %in% Target_Sections) %>% group_by(., Section) else if (Station_selection == "NA" & Selection_process == "B_box") group_by(., Section) else {.}} %>%
      #Filter by Oyster GIS layer
      filter(if(Oyster_Layer == "Y")  FL_Oysters == "Y" else if (Oyster_Layer == "N") FL_Oysters == "N" else FL_Oysters == FL_Oysters) %>%
      #Filter by SHA classification
@@ -308,7 +308,8 @@ if(Selection_process == "Ordered"){
     #
     Stations_selected <- rbind(Stations_selected, rbind(Target_z, Extra_z)) %>%
       {if(SHA_classification == "Y" & Zoning_Method == "ByZone" & ShoreZoning == "Y") {group_by(., Zone, ShoreZone, SHA_Class)} else if(SHA_classification == "Y" & Zoning_Method == "ByZone" & ShoreZoning == "N") {group_by(., Zone, SHA_Class)} else if(SHA_classification == "Y" & Zoning_Method == "All" & ShoreZoning == "Y"){group_by(., ShoreZone, SHA_Class)} else {group_by(., Type)}} %>% 
-      arrange(Station, .by_group =  TRUE)
+      arrange(Station, .by_group =  TRUE) %>%
+      mutate(GPS_ID = paste0(Zone, substr(ShoreZone, 1, 1), Station))
   }
   head(Stations_selected)
   #
@@ -440,7 +441,7 @@ Output_list <- list("Summary" = Survey_summary,
                     "Cleaned_data" = Cleaned_data)
 #
 #Export to Excel
-if(Include_name == "N"){
+if(Include_name == "N" | !exists(Include_name)){
   write.xlsx(Output_list, file =  paste0("Output_Data/", Site_Code, "_Survey_Stations_", 
                                          Survey_year, "_", Survey_timeperiod,".xlsx"), 
              colnames = TRUE, rowNames = FALSE, keepNA = TRUE, na.string = c("Z"), colWidths = "auto")
