@@ -183,7 +183,8 @@ if(Selection_process == "Ordered"){
   #
   #Compile into final data set 
   Stations_selected <- rbind(Target, Extra) %>% dplyr::select(Type, Section, Station, MGID:HSM_Score, geometry) %>% 
-    {if(Station_selection == "Site") group_by(., Section) %>% arrange(., Station, .by_group = FALSE) else arrange(., Station, .by_group = TRUE)}
+    {if(Station_selection == "Site") group_by(., Section) %>% arrange(., Station, .by_group = FALSE) else arrange(., Station, .by_group = TRUE)} %>%
+    mutate(GPS_ID = paste0(Site, Section, sprintf("%03d", Station)))
   head(Stations_selected)
 } else if(Selection_process == "B_box"){
   (tempb <- All_data %>% 
@@ -204,7 +205,7 @@ if(Selection_process == "Ordered"){
      #Filter by existing data 
      filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID))
   )
-  print(tm_shape(tempb) + tm_polygons(col = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
+  print(tm_shape(tempb) + tm_polygons(fill = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
   
   #Assign station numbers
   tb <- tempb %>% 
@@ -220,8 +221,9 @@ if(Selection_process == "Ordered"){
   Extra_b <- tb[tb$Station > Num_Target & tb$Station < (Num_Target + Num_Extra + 1),]  %>% mutate(Type = "Extra")
   #
   #Compile into final data set 
-  Stations_selected <- rbind(Target, Extra) %>% dplyr::select(Type, Section, Station, MGID:HSM_Score, geometry) %>% 
-    {if(Station_selection == "Site") group_by(., Section) %>% arrange(., Station, .by_group = FALSE) else arrange(., Station, .by_group = TRUE)}
+  Stations_selected <- rbind(Target_b, Extra_b) %>% dplyr::select(Type, Section, Station, MGID:HSM_Score, geometry) %>% 
+    {if(Station_selection == "Site") group_by(., Section) %>% arrange(., Station, .by_group = FALSE) else arrange(., Station, .by_group = TRUE)} %>%
+    mutate(GPS_ID = paste0(Site, Section, sprintf("%02d", Station)))
   head(Stations_selected)
 } else if(Selection_process == "Zone") {
   #
@@ -385,7 +387,8 @@ if(Selection_process == "Ordered"){
     #
     Stations_selected <- rbind(Stations_selected, rbind(Target_r, Extra_r)) %>%
       {if(SHA_classification == "Y") group_by(., Section, SHA_Class) else group_by(., Section)} %>% 
-      arrange(Station, .by_group =  TRUE)
+      arrange(Station, .by_group =  TRUE) %>%
+       mutate(GPS_ID = paste0(Site, Section, sprintf("%03d", Station)))
   }
   head(Stations_selected)
 }
@@ -487,7 +490,7 @@ if(Map_output == "Site") {
     #Add FL shoreline
     tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
     #Add cell Station numbers
-    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = "AREA")+ 
+    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = "AREA", just = "center")+ 
     #Add monitoring stations
     {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
     {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations")) + tm_view(text.size.variable = TRUE)}+
@@ -520,7 +523,7 @@ if(Map_output == "Site") {
       #Add FL shoreline
       tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
       #Add cell Station numbers
-      tm_shape(name = "Station numbers", Stations_selected %>% filter(Section == i)) + tm_text("Station", size = 0.45)+ 
+      tm_shape(name = "Station numbers", Stations_selected %>% filter(Section == i)) + tm_text("Station", size = 0.45, just = "center")+ 
       #Add monitoring stations
       {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.75, col = "black", border.col = "black", alpha = 0.4)}+
       {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations")) + tm_view(text.size.variable = TRUE)}+
@@ -554,7 +557,7 @@ if(Map_output == "Site") {
     #Add FL shoreline
     tm_shape(name = "Shoreline", st_make_valid(FL_outline)) + tm_polygons() +
     #Add cell Station numbers
-    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = "AREA")+ 
+    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = "AREA", just = "center")+ 
     #Add monitoring stations
     {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
     {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations")) + tm_view(text.size.variable = TRUE)}+
@@ -587,7 +590,7 @@ if(Map_output == "Site") {
     {if(ShoreZoning == "Y") tm_shape(name = "ShoreZone", All_data) + tm_borders(col = "ShoreZone", size = 1.75)} +
     {if(ShoreZoning == "N") tm_shape(name = "Zone", All_data) + tm_borders(col = "Zone")}+
     #Add cell Station numbers
-    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = 0.7)+ 
+    tm_shape(name = "Station numbers", Stations_selected) + tm_text("Station", size = 0.7, just = "center")+ 
     #Add monitoring stations
     {if(Monitoring_locations == "Y") tm_shape(name = "Monitoring stations", Monitor_spdf) +  tm_symbols(shape = 16, size = 0.2, col = "black", border.col = "black", alpha = 0.4)}+
     {if(Monitoring_locations == "Y") tm_add_legend('fill', col = "black", border.col = "black", labels = c("Monitoring Stations")) + tm_view(text.size.variable = TRUE)}+
