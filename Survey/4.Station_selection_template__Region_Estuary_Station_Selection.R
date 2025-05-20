@@ -197,7 +197,7 @@ if(Selection_process == "Ordered"){
      #Filter by existing data 
      filter(if(Existing_survey_data == "E") !(MGID %in% Comp_Stations$MGID) else if(Existing_survey_data == "I") (MGID %in% Comp_Stations$MGID))
   )
-  print(tm_shape(tempb) + tm_polygons(col = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
+  print(tm_shape(tempb) + tm_polygons(fill = "Depth") + tm_shape(FL_outline) + tm_polygons(col = "gray"))
   
   #Assign station numbers
   tb <- tempb %>% 
