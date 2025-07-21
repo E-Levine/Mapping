@@ -78,7 +78,7 @@ qtm(FL_outline)
 #
 #
 #Monitoring stations - for plotting fixed stations if desired - can skip if not plotting fixed stations in final maps
-Monitoring <- read.csv("../Reference Files/Current_Monitoring_Stations_2023.csv", na.string = c("Z", "", "NA"))  %>% drop_na(DecLong, DecLat)
+Monitoring <- read.csv("../Reference Files/Current_Monitoring_Stations_2023.csv", na.string = c("Z", "", "NA")) %>% drop_na(DecLong, DecLat)
 head(Monitoring)
 Monitor_spdf <- SpatialPointsDataFrame(Monitoring[,3:4], Monitoring)
 crs(Monitor_spdf) <- "+proj=longlat +datum=WGS84 +no_defs +type=crs"

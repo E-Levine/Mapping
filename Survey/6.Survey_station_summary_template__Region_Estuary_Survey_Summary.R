@@ -29,7 +29,7 @@ State_Grid <- c("H4")
 #Alt_State_Grid <- c("H5") 
 #
 #Date of grid updates (output data date from file name)
-Date <- c("2023-07-20") #Format: YYY-MM-DD
+Date <- c("2025-05-08") #Format: YYY-MM-DD
 #
 ##WQ data range for HSM - start and end year for WQ data compilation (refer to file name for dates)
 Start_year <- c("2012")
@@ -56,12 +56,17 @@ Site_Grid <- rbind(MicroGrid[lengths(st_intersects(MicroGrid, Estuary_area))> 0,
 Site_df <- read.csv(paste0("Output_data/", Site_Code, "_MicrogridData_", Date, ".csv"), 
                     na.string = c("Z", "", "NA"))
 head(Site_df)
-#HSM data
+#HSM data - run first line to include data, run second line to map without HSM data
 HSM_data <-  read.csv(paste0("Output_data/", Site_Code, "_MicrogridData_HSM_", Start_year,"_", End_year, ".csv"), 
                       na.string = c("Z", "", "NA"))
+HSM_data <- NA
 head(HSM_data)
 #Merge
-Site_data <- left_join(Site_df, HSM_data %>% dplyr::select(MGID, Salinity_HSI:HSM_Score))
+if(!is.na(HSM_data)){
+  Site_data <- left_join(Site_df, HSM_data %>% dplyr::select(MGID, Salinity_HSI:HSM_Score))
+} else {
+  Site_data <- Site_df
+}
 head(Site_data)
 #
 #
@@ -72,7 +77,7 @@ qtm(FL_outline)
 #
 #
 #Monitoring stations - for plotting fixed stations if desired - can skip if not plotting fixed stations in final maps
-Monitoring <- read.csv("../Reference Files/Current_Monitoring_Stations_2023.csv", na.string = c("Z", "", "NA"))
+Monitoring <- read.csv("../Reference Files/Current_Monitoring_Stations_2023.csv", na.string = c("Z", "", "NA")) %>% drop_na(DecLong, DecLat)
 head(Monitoring)
 Monitor_spdf <- SpatialPointsDataFrame(Monitoring[,3:4], Monitoring)
 crs(Monitor_spdf) <- "+proj=longlat +datum=WGS84 +no_defs +type=crs"
@@ -104,6 +109,8 @@ st_crs(FL_Oysters)
 Oyster_layer <- c("Y")
 #Show depth? Y/N
 Depth_layer <- c("N")
+#Show Zones and/or ShoreZones? Zone/ShoreZone, Both
+Zone_layer <- c("both")
 #Interactive or static map. Static map does not include station IDs, interactive map does. Inter/Static
 Map_type <- c("Inter")
 #Map at the Site/Estuary or Section level? Site/Section
@@ -116,7 +123,7 @@ Section_Static_IDs <- c("N")
 #
 #Final combined data frame
 All_data <- left_join((Site_Grid %>% dplyr::select(-Site, -Section, -SHA_Name, -SHA_Class, -Subsection, -Bathy_m)),
-                      Site_data %>% dplyr::select(MGID, Site:HSM_Score)) %>%
+                      Site_data %>% dplyr::select(MGID, County:last_col())) %>%
   mutate(Seagrass = ifelse(is.na(Seagrass), "Unk", Seagrass)) %>%
   left_join(Comp_Stations %>% dplyr::select(Site, Section, Date, MGID:Longitude, FixedLocationID:Dead_Count) %>% mutate(Oysters = as.factor(Oysters)))
 #
@@ -133,6 +140,9 @@ if(Map_area == "Site"){
           tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)}+  #Change text for legend
       #Add depth
       {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add Zone and ShoreZone
+      {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+      {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
       #Add stations surveyed
       tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters)))+  
       tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8)+
@@ -157,6 +167,9 @@ if(Map_area == "Site"){
           tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)}+  #Change text for legend
       #Add depth
       {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add Zone and ShoreZone
+      {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+      {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
       #Add stations surveyed
       tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters)))+  
       tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8)+
@@ -186,6 +199,9 @@ if(Map_area == "Site"){
             tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)} +
         #Add depth
         {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add Zone and ShoreZone
+        {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+        {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
         #Add stations
         tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters) & Section == i))+  
         tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8) + 
@@ -213,6 +229,9 @@ if(Map_area == "Site"){
             tm_polygons("FL_Oysters", title = "", palette = c("viridis"), alpha = 0.4)}+  #Change text for legend
         #Add depth
         {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add Zone and ShoreZone
+        {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+        {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
         #Add stations surveyed
         tm_shape(name = "Surveyed stations", All_data %>% subset(!is.na(Oysters) & Section == i))+  
         tm_polygons("Oysters", title = "Oyster Reef", palette = c("YlOrRd"), alpha = 0.8)+
@@ -286,6 +305,9 @@ if(Map_area == "Site"){
       tm_polygons(col = "Checked") + 
       #Add depth
       {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add Zone and ShoreZone
+      {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+      {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
       #Add locations surveyed
       tm_shape(name = "Surveyed locations", t3)+  
       tm_symbols(shape = 16, size = 1, col = "Type", palette = c("RdYlGn"), border.col = "black")+
@@ -306,6 +328,9 @@ if(Map_area == "Site"){
       tm_polygons(col = "Checked") + 
       #Add depth
       {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+      #Add Zone and ShoreZone
+      {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+      {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
       #Add locations surveyed
       tm_shape(name = "Surveyed locations", t3)+  
       tm_symbols(shape = 16, size = 0.0025, col = "Type", palette = c("RdYlGn"), border.col = "black")+
@@ -329,6 +354,9 @@ if(Map_area == "Site"){
         tm_borders(col = "gray", alpha = 0) + #Cell borders
         #Add depth
         {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add Zone and ShoreZone
+        {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+        {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
         #Add checked polygons
         tm_shape(name = "Surveyed locations", t)+  
         tm_polygons(col = "Checked", alpha = 0.8) + 
@@ -353,6 +381,9 @@ if(Map_area == "Site"){
         tm_borders(col = "gray", alpha = 0) + #Cell borders
         #Add depth
         {if(Depth_layer == "Y") tm_shape(name = "Depth", All_data %>% filter(!is.na(Depth))) + tm_polygons("Depth", title = "", palette = c("YlGnBu"), alpha = 0.5)} +
+        #Add Zone and ShoreZone
+        {if(Zone_layer == "Zone" | Zone_layer == "both") tm_shape(name = "Zone", All_data %>% filter(!is.na(Zone))) + tm_polygons("Zone", title = "", palette = c("brewer.accent"), alpha = 0.4)} +
+        {if(Zone_layer == "ShoreZone" | Zone_layer == "both") tm_shape(name = "ShoreZone", All_data %>% filter(!is.na(ShoreZone))) + tm_polygons("ShoreZone", title = "", palette = c("brewer.dark2"), alpha = 0.4)} +
         #Add checked polygons
         tm_shape(name = "Surveyed locations", t)+  
         tm_polygons(col = "Checked", alpha = 0.8) + 
