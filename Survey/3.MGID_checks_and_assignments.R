@@ -75,6 +75,7 @@ Quarters <- data.frame(Month = c("01", "02", "03", "04", "05", "06", "07", "08",
 #
 #
 #
+###END OF SECTION
 #
 #
 ###Confirm MGID####
@@ -108,6 +109,8 @@ Corrected <- left_join(Current, Comp_LL) %>%
 head(Corrected)
 #
 #
+##END OF SECTION
+#
 #
 ###Output data for reference####
 #
@@ -126,6 +129,8 @@ head(Final_stations)
 write.table(Final_stations, file = paste0("Output_Data/", Site_Code, "_Station_MGIDs.csv"), row.names = FALSE,
             sep = ",", append = TRUE, quote = FALSE, col.names = FALSE)
 #
+#
+##END OF SECTION
 #
 #
 ###Create data frame for upload and SQL code####
@@ -231,42 +236,15 @@ INSERT INTO [dbo].[FixedLocations]
       ,[AdminNotes]
       ,[StationNameNumber]
       ,[EstuaryLongName])
-  VALUES
-      ({FixedLocationID}
-      ,{Estuary}
-      ,{SectionName}
-      ,{StationName}
-      ,{StationNumber}
-      ,{ParcelName}
-      ,{ParcelArea}
-      ,{CultchDensity}
-      ,{LatitudeDec}
-      ,{LongitudeDec}
-      ,{Recruitment}
-      ,{Survey}
-      ,{Sediment}
-      ,{Collections}
-      ,{ShellBudget}
-      ,{Dataloggers}
-      ,{Cage}
-      ,{Wave}
-      ,{StartDate}
-      ,{EndDate}
-      ,{DataStatus}
-      ,{DateEntered}
-      ,{EnteredBy}
-      ,{DateProofed}
-      ,{ProofedBy}
-      ,{DateCompleted}
-      ,{CompletedBy}
-      ,{Comments}
-      ,{AdminNotes}
-      ,{StationNameNumber}
-      ,{EstuaryLongName})
-GO"
+  VALUES"
+
+temp <- character(length(nrow(FixedLocations)))
+for(i in 1:nrow(FixedLocations)){
+  temp[i] <- paste0(FixedLocationSQLtemplate, "\n      (",paste(FixedLocations[i,], collapse = "\n      ,"), ")\n GO")
+}
 #
 # Use the glue function to fill in the template with the data frame values
-FixedLocationSQL <- glue(FixedLocationSQLtemplate, .envir = FixedLocations)
+FixedLocationSQL <- paste(temp, collapse = "\n\n")
 #
 #Save SQL code
 write_lines(FixedLocationSQL, paste0("../SOPs and Templates/ODIN/SQL/", Site_Code, "_FixedLocations_", Survey_Year, "_", Survey_Time,".sql"))
@@ -275,6 +253,8 @@ write_lines(FixedLocationSQL, paste0("../SOPs and Templates/ODIN/SQL/", Site_Cod
 #Save summary information for tracking
 write.csv(ODIN_output, file = paste0("../SOPs and Templates/ODIN/", Site_Code, "_Station_Data_", Sys.Date(), ".csv"), row.names = FALSE)
 #
+#
+#END OF SECTION
 #
 #
 ###Update tracking file with new stations and data####
