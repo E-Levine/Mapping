@@ -40,11 +40,12 @@ ggplot() +
     data = fl_counties_joined,
     aes(fill = Landings,
         pattern = Landings,
-        pattern_color = Landings),
+        pattern_color = Landings,
+        pattern_angle = Landings),
     size = 0.5,
     pattern_density = 0.002, #frequency of lines
     pattern_spacing = 0.015, #distance between lines
-    pattern_size = 0.2       #thickness of lines
+    pattern_size = 0.35       #thickness of lines
   ) +
   # Set color fills to use by class:
   scale_fill_manual(
@@ -56,13 +57,7 @@ ggplot() +
       "1 – 1,000"       = "white",
       "0"               = "white"
     ),
-    breaks = c(
-      "50,000+",
-      "10,001 – 50,000",
-      "5,001 – 10,000",
-      "1,001 – 5,000",
-      "1 – 1,000"
-    ),
+    breaks = c("50,000+", "10,001 – 50,000", "5,001 – 10,000", "1,001 – 5,000", "1 – 1,000"),
     name = "Landings (lbs)"
   ) +
   # Set patterns by class:
@@ -75,16 +70,10 @@ ggplot() +
       "1 – 1,000"       = "stripe",
       "0"               = "none"
     ),
-    breaks = c(
-      "50,000+",
-      "10,001 – 50,000",
-      "5,001 – 10,000",
-      "1,001 – 5,000",
-      "1 – 1,000"
-    ),
+    breaks = c("50,000+", "10,001 – 50,000", "5,001 – 10,000", "1,001 – 5,000", "1 – 1,000"),
     name = "Landings (lbs)"
   ) +
-  # Set patttern colors by class:
+  # Set pattern (line) colors by class:
   scale_pattern_color_manual(
     values = c(
       "50,000+"     = NA,
@@ -95,12 +84,24 @@ ggplot() +
       "0"               = NA
     )
   )+
+  # Set pattern angles by class:
+  scale_pattern_angle_manual(
+    values = c(
+      "50,000+"         = 0,
+      "10,001 – 50,000" = 0,
+      "5,001 – 10,000"  = 45,
+      "1,001 – 5,000"   = 45,
+      "1 – 1,000"       = 0,   
+      "0"               = 0
+    )
+  ) +
   # Control stripe orientation
   guides(
-    fill = guide_legend(title = "Stone crabs \n2025 Commercial \nLandings (lbs)"),
+    fill = guide_legend(title = "Stone crabs \n2024 Commercial \nLandings (lbs)"),
     pattern_color = "none",
+    pattern_angle = "none",
     pattern = guide_legend(
-      title = "Stone crabs \n2025 Commercial \nLandings (lbs)",
+      title = "Stone crabs \n2024 Commercial \nLandings (lbs)",
       override.aes = list(
         pattern_angle = c(0, 0, 45, 45, 0),
         pattern_size = 0.8,
@@ -117,7 +118,6 @@ ggplot() +
   
   # Mapping themes and formatting 
   theme_bw() +
-  
   theme(
     # Legend formatting
     legend.position = "inside", legend.position.inside = c(0.16, 0.20),
@@ -126,3 +126,20 @@ ggplot() +
     # Plot formatting 
     axis.text = element_blank(), axis.ticks = element_blank(), 
     panel.grid =  element_blank())
+
+
+## Save map for web applications:
+ggsave(
+  "Stone crab/stone_crab_map.png",
+  width = 8,
+  height = 6,
+  dpi = 150
+)
+## Save for print applications:
+ggsave(
+  "Stone crab/stone_crab_map.tiff",
+  width = 7,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
