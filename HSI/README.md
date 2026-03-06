@@ -1,5 +1,7 @@
 # Habitat Suitability Model
-Code for creating and updating HSI models. *Project is underdevelopment.*
+Preliminary and/or testing code for creating and updating HSI models. Main HSM files can be found in the HSM-and-mapping repository. 
+Code for HSM project associated products for presentation and communication purposes.
+
 HSI models are created according to the StateGrid(s) in which the area is located and within a predefined area (i.e., Site) established using KML polygon files. Please refer to the StateGrid map to determine proper StateGrid and review the "Site_file_creation_SOP" to set up KML files.
 <br>
 ## Project set up

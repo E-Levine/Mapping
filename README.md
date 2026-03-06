@@ -3,7 +3,8 @@ Code for various mapping projects using R.
 When using this repo, insure all large raw data files are stored in a folder named 'Data'. 'Data' folders will not sync, but any 'Output', 'Summary', or other folders will.
 
 HSI <br>
-*Templates for creating HSI scoring. <br>
+*Preliminary code for creating HSI data application code. <br>
+*Code for HSM project associated products. <br>
 *In development to utilize survey code for creation of editable HSI.
 
 LOCATION SPECIFIC CODE <br>
@@ -26,6 +27,7 @@ WATER QUALITY DATA <br>
 *Code for selecting and compiling water quality data for use with mapping. Requires state grid and estuary area layers. 
 
 **Updates** <br>
- 6/5/24 - #4 Updated for proper selection/exclusion of monitoring stations. <br>
+ 6/5/24 - Survey: #4 Updated for proper selection/exclusion of monitoring stations. <br>
  11/18/24 - gitignore 'Data' folders. <br>
- 1/3/25 - WQ folders created. README updated.
+ 1/3/25 - WQ folders created. README updated. <br>
+ 3/6/26 - HSI: Folder updates. Code for HSM summary map, parameter figures for presentations. 
