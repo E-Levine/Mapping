@@ -50,3 +50,12 @@ rsconnect/
 
 # Any 'Data' folders - to exlcude large files
 **/Data/
+
+# Any data file 'Outputs' - can be saved locally
+**/Output/*.xlsx
+**/Output/*.xlsm
+**/Output/*.xls
+**/Output/*.csv
+
+# Keep files ending with _keep before extension
+!*_keep.*
