@@ -155,3 +155,51 @@ ggsave(
   units = "in",
   dpi = 300 # Use 300 dpi for high quality
 )
+
+# Ave param per model by state ----
+#
+
+US_map.df <- US_map.df %>%
+  left_join(HSMs %>%
+              group_by(Abbr) %>%
+              summarise(Mean = round(mean(Total, na.rm = T),0),
+                        Min  = min(Total, na.rm = T),
+                        Max = max(Total, na.rm = T)),
+            by = c("state" = "Abbr")) %>%
+  mutate(across(c(Mean, Min, Max), as.factor))
+#
+(p3 <- ggplot()+
+   # map of states
+   geom_sf(data = US_map.df, fill = "#CCCCCC",color = "black")+
+   #color states with HSM
+   geom_sf(data = US_map.df %>% filter(state %in% HSMs$Abbr), 
+           aes(fill = Mean), color = "black", alpha = 0.6)+
+   # add State abbreviations
+   geom_text(data = ST.centers, aes(X, Y, label = state), size = 6, color = "black", fontface = "bold")+
+   # Modify colors used
+   scale_fill_viridis_d(option = "C")+
+   # Make look "normal"
+   coord_sf()+
+   # Limit to southeast
+   scale_x_continuous("", limits = c(-106, -72))+
+   scale_y_continuous("", limits = c(25, 45)) +
+   # Formatting
+   basetheme +
+   theme(panel.border = element_rect(color = "black"),
+         panel.background = element_rect(color = "white"),
+         axis.text = element_text(size = 15, color = "black", family = "Arial"))+
+   legendtheme +
+   labs(fill = "Parameter\nCount"))
+#
+ggsave(
+  filename = "HSI/Output/Parameters_by_State.png",
+  plot = p3,
+  width = 9,
+  height = 5,
+  units = "in",
+  dpi = 300 # Use 300 dpi for high quality
+)
+#
+#
+#
+#
