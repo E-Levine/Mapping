@@ -116,7 +116,7 @@ ST.centers <- data.frame(
   labs(fill = "HSM Count"))
 #
 ggsave(
-  filename = "HSI/Output/HSMs_by_State.png",
+  filename = "HSI/Output/HSMs_by_State2.png",
   plot = p1,
   width = 9,
   height = 5,
@@ -141,14 +141,14 @@ Param_count <- HSMs %>%
     geom_bar(stat = "identity") +
     scale_fill_identity() +
     scale_x_discrete(expand = c(0.075,0))+
-    scale_y_continuous("Number of HSM", limits = c(0, 24), expand = c(0,0), breaks = seq(0, 24, by = 6))+
+    scale_y_continuous("Number of HSM", limits = c(0, 20), expand = c(0,0), breaks = seq(0, 20, by = 5))+
     basetheme+
     theme(axis.title = element_text(size = 18, color = "black", face = "bold"),
           axis.text.x = element_text(vjust = 0.68)))
 #
-write_xlsx(Param_count, "HSI/Output/Param_count.xlsx")
+write_xlsx(Param_count, "HSI/Output/Param_count2.xlsx")
 ggsave(
-  filename = "HSI/Output/Parameters_by_HSMs.png",
+  filename = "HSI/Output/Parameters_by_HSMs2.png",
   plot = p2,
   width = 9,
   height = 5,
@@ -158,7 +158,6 @@ ggsave(
 
 # Ave param per model by state ----
 #
-
 US_map.df <- US_map.df %>%
   left_join(HSMs %>%
               group_by(Abbr) %>%
@@ -192,7 +191,7 @@ US_map.df <- US_map.df %>%
    labs(fill = "Parameter\nCount"))
 #
 ggsave(
-  filename = "HSI/Output/Parameters_by_State.png",
+  filename = "HSI/Output/Parameters_by_State2.png",
   plot = p3,
   width = 9,
   height = 5,
